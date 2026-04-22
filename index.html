@@ -597,7 +597,7 @@ const DIMS = [...DIMS_W, ...DIMS_A];
 
 const ARCHETYPES = {
 
-  aliado:       {id:'aliado',       name:'Aliado Activo',        icon:'●', iconBg:'var(--sg-bg)', iconColor:'var(--sg)', badgeClass:'b-aliado',       barColor:'#2BA86A',
+  aliado:       {id:'aliado',       name:'Aliado Activo',        icon:'[A]', iconBg:'var(--sg-bg)', iconColor:'var(--sg)', badgeClass:'b-aliado',       barColor:'#2BA86A',
 
     desc:'Alta convicción y energía. Motor natural de cambio.',
 
@@ -605,7 +605,7 @@ const ARCHETYPES = {
 
     actions:[{tag:'PRIORITARIO',urgency:'tag-bajo',text:'Activar como embajador: rol visible en comunicación interna o sesiones de pares.'},{tag:'PRIORITARIO',urgency:'tag-bajo',text:'Involucrar en co-diseño de soluciones o como referente de buenas prácticas.'},{tag:'MANTENER',urgency:'tag-bajo',text:'Reconocimiento explícito y acceso anticipado a información clave.'}]},
 
-  seguidor:     {id:'seguidor',     name:'Seguidor Pasivo',      icon:'◆', iconBg:'var(--sa-bg)', iconColor:'var(--sa)', badgeClass:'b-seguidor',     barColor:'#D4A017',
+  seguidor:     {id:'seguidor',     name:'Seguidor Pasivo',      icon:'[S]', iconBg:'var(--sa-bg)', iconColor:'var(--sa)', badgeClass:'b-seguidor',     barColor:'#D4A017',
 
     desc:'Comprensión razonable, pero baja agencia. Espera que otros lideren.',
 
@@ -613,7 +613,7 @@ const ARCHETYPES = {
 
     actions:[{tag:'PRIORITARIO',urgency:'tag-medio',text:'Asignar rol específico y acotado en el proceso para activar responsabilidad.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Conectar con un aliado activo para generar efecto de arrastre.'},{tag:'COMPLEMENTARIO',urgency:'tag-bajo',text:'Reforzar narrativa con ejemplos de impacto en su área concreta.'}]},
 
-  esceptico:    {id:'esceptico',    name:'Escéptico Estructural',icon:'▲', iconBg:'var(--sr-bg)', iconColor:'var(--sr)', badgeClass:'b-esceptico',    barColor:'#E05C6E',
+  esceptico:    {id:'esceptico',    name:'Escéptico Estructural',icon:'[E]', iconBg:'var(--sr-bg)', iconColor:'var(--sr)', badgeClass:'b-esceptico',    barColor:'#E05C6E',
 
     desc:'Baja convicción o desconfianza en liderazgo. Riesgo de contagio negativo.',
 
@@ -621,7 +621,7 @@ const ARCHETYPES = {
 
     actions:[{tag:'URGENTE',urgency:'tag-urgente',text:'Conversación 1:1 con sponsor en los próximos 7 días. Identificar causa raíz.'},{tag:'URGENTE',urgency:'tag-urgente',text:'Diagnosticar si la desconfianza es sistémica o personal.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Canalizar críticas como input legítimo al proceso de mejora.'}]},
 
-  desconectado: {id:'desconectado', name:'Desconectado',         icon:'■', iconBg:'var(--ss-bg)', iconColor:'var(--ss)', badgeClass:'b-desconectado', barColor:'#999',
+  desconectado: {id:'desconectado', name:'Desconectado',         icon:'[D]', iconBg:'var(--ss-bg)', iconColor:'var(--ss)', badgeClass:'b-desconectado', barColor:'#999',
 
     desc:'Baja comprensión y baja capacidad percibida. Intervención prioritaria.',
 
@@ -635,17 +635,17 @@ const ARCHETYPES = {
 
 const TENSIONS = [
 
-  {name:'Frustración temprana',    cond:iv=>sc(iv,'energia')>=4&&sc(iv,'capacidad')<=2, color:'#FFE8EA', icon:'⚡', msg:'Alta motivación sin herramientas para ejecutar. Riesgo de burn-out si no se habilita.'},
+  {name:'Frustración temprana',    cond:iv=>sc(iv,'energia')>=4&&sc(iv,'capacidad')<=2, color:'#FFE8EA', icon:'!', msg:'Alta motivación sin herramientas para ejecutar. Riesgo de burn-out si no se habilita.'},
 
-  {name:'Rechazo cultural',        cond:iv=>sc(iv,'conviccion')<=2&&sc(iv,'comprension')>=4, color:'#FFF5E0', icon:'🔄', msg:'Entiende el cambio pero no lo acepta. Resistencia estructural, no informacional.'},
+  {name:'Rechazo cultural',        cond:iv=>sc(iv,'conviccion')<=2&&sc(iv,'comprension')>=4, color:'#FFF5E0', icon:'~', msg:'Entiende el cambio pero no lo acepta. Resistencia estructural, no informacional.'},
 
-  {name:'Dependencia frágil',      cond:iv=>sc(iv,'confianza')<=2&&sc(iv,'energia')>=4, color:'#FFE8EA', icon:'🔗', msg:'Empuje personal sin respaldo institucional. La energía no es sostenible sin liderazgo visible.'},
+  {name:'Dependencia frágil',      cond:iv=>sc(iv,'confianza')<=2&&sc(iv,'energia')>=4, color:'#FFE8EA', icon:'@', msg:'Empuje personal sin respaldo institucional. La energía no es sostenible sin liderazgo visible.'},
 
-  {name:'Desconexión silenciosa',  cond:iv=>sc(iv,'soporte')<=2&&sc(iv,'energia')<=2, color:'#EEE', icon:'🔇', msg:'Aislamiento que evoluciona en desvinculación. Sin red ni motivación.'},
+  {name:'Desconexión silenciosa',  cond:iv=>sc(iv,'soporte')<=2&&sc(iv,'energia')<=2, color:'#EEE', icon:'x', msg:'Aislamiento que evoluciona en desvinculación. Sin red ni motivación.'},
 
-  {name:'Parálisis por incertidumbre', cond:iv=>sc(iv,'comprension')<=2&&sc(iv,'capacidad')<=2, color:'#EEE', icon:'❄️', msg:'No sabe qué ni cómo. Bloqueo total — intervención educativa prioritaria.'},
+  {name:'Parálisis por incertidumbre', cond:iv=>sc(iv,'comprension')<=2&&sc(iv,'capacidad')<=2, color:'#EEE', icon:'*', msg:'No sabe qué ni cómo. Bloqueo total — intervención educativa prioritaria.'},
 
-  {name:'Aliado en riesgo',        cond:iv=>sc(iv,'conviccion')>=4&&sc(iv,'confianza')<=2, color:'#FFF5E0', icon:'⚠️', msg:'Cree en el cambio pero no en quien lo lidera. Capital humano en riesgo de pérdida.'},
+  {name:'Aliado en riesgo',        cond:iv=>sc(iv,'conviccion')>=4&&sc(iv,'confianza')<=2, color:'#FFF5E0', icon:'!', msg:'Cree en el cambio pero no en quien lo lidera. Capital humano en riesgo de pérdida.'},
 
 ];
 
@@ -699,7 +699,7 @@ async function scriptGet(params){
 
 async function loadAll(){
 
-  setStatus('loading','Cargando…');
+  setStatus('loading','Cargando...');
 
   try {
 
@@ -827,7 +827,7 @@ function getHeatColor(v){
 
 function displayName(n){return anonMode?'████████':n;}
 
-function pulseName(id){const p=pulses.find(p=>p.id===id);return p?p.name:id||'—';}
+function pulseName(id){const p=pulses.find(p=>p.id===id);return p?p.name:id||'-';}
 
 function uniqueNames(){return[...new Set(interviews.map(iv=>iv.name).filter(Boolean))].sort();}
 
@@ -956,9 +956,9 @@ function renderList(){
 <div class="iv-meta">${iv.date}</div>
 <span class="badge ${arch.badgeClass}">${arch.name}</span>
 <div class="iv-meta">W:${w} / A:${a}</div>
-<div class="iv-meta">${iv.channel||'—'}</div>
-<div class="iv-meta">${iv.facilitator||'—'}</div>
-<div class="iv-notes">${iv.pulse_id?'['+pulseName(iv.pulse_id)+'] ':''} ${iv.notes||iv.conclusions||'—'}</div>
+<div class="iv-meta">${iv.channel||'-'}</div>
+<div class="iv-meta">${iv.facilitator||'-'}</div>
+<div class="iv-notes">${iv.pulse_id?'['+pulseName(iv.pulse_id)+'] ':''} ${iv.notes||iv.conclusions||'-'}</div>
 <button class="iv-del" onclick="event.stopPropagation();deleteRow('Data','${iv.id}',${iv._row})" title="Eliminar">×</button>
 </div>`;
 
@@ -1029,7 +1029,7 @@ const name=document.getElementById(‘f-name’).value.trim();
 
 const date=document.getElementById(‘f-date’).value;
 
-if(!name||!date){document.getElementById(‘saveStatus’).textContent=‘⚠ Nombre y fecha obligatorios’;return;}
+if(!name||!date){document.getElementById(‘saveStatus’).textContent=’! Nombre y fecha obligatorios’;return;}
 
 document.getElementById(‘saveBtn’).disabled=true;
 
@@ -1069,13 +1069,13 @@ try{
 
 await scriptGet({action:‘append’,sheet:‘Data’,row:row.join(’||’)});
 
-document.getElementById(‘saveStatus’).textContent=‘✓ Guardado’;
+document.getElementById(‘saveStatus’).textContent=‘OK Guardado’;
 
 setTimeout(()=>{clearForm();switchTab(‘list’);},700);
 
 await loadAll();
 
-}catch(e){setStatus(‘err’,‘Error al guardar’);document.getElementById(‘saveStatus’).textContent=‘Error — revisa la consola’;console.error(e);}
+}catch(e){setStatus(‘err’,‘Error al guardar’);document.getElementById(‘saveStatus’).textContent=‘Error - revisa la consola’;console.error(e);}
 
 document.getElementById(‘saveBtn’).disabled=false;
 
@@ -1145,13 +1145,13 @@ const conclusionsHTML=(latest.conclusions
 
 const actionsHTML=personActions.length
 
-? personActions.sort((a,b)=>b.created.localeCompare(a.created)).map(ac=>` <div class="action-item"> <span class="action-tag ${priorityUrgency(ac.priority)}">${ac.priority}</span> <div style="flex:1"><div>${ac.desc}</div><div style="font-size:.62rem;color:var(--muted);margin-top:3px">${ac.owner?'Responsable: '+ac.owner+' · ':''} ${ac.due?'Límite: '+ac.due+' · ':''} ${statusBadge(ac.status)}</div></div> </div>`).join(’’)
+? personActions.sort((a,b)=>b.created.localeCompare(a.created)).map(ac=>` <div class="action-item"> <span class="action-tag ${priorityUrgency(ac.priority)}">${ac.priority}</span> <div style="flex:1"><div>${ac.desc}</div><div style="font-size:.62rem;color:var(--muted);margin-top:3px">${ac.owner?'Responsable: '+ac.owner+' / ':''} ${ac.due?'Límite: '+ac.due+' / ':''} ${statusBadge(ac.status)}</div></div> </div>`).join(’’)
 
 : ‘<div style="font-size:.72rem;color:var(--muted);padding:6px 0">Sin acciones registradas.</div>’;
 
 const timelineHTML=personIvs.length>1?`<div class="card"><div class="card-title">Evolución temporal (${personIvs.length} entrevistas)</div><canvas id="timelineChart" height="130"></canvas></div>`:’’;
 
-content.innerHTML=` <div class="ind-layout"> <div class="left-col"> <div class="card"> <div style="font-size:.98rem;font-weight:600;margin-bottom:2px">${anonMode?'████████':latest.name}</div> <div style="font-size:.66rem;color:var(--muted);font-family:\'IBM Plex Mono\',monospace">${latest.date} · ${latest.channel||'—'} · ${latest.facilitator||'—'}</div> ${latest.role&&!anonMode?`<div style="font-size:.68rem;color:var(--ink-soft);margin-top:2px">${latest.role}</div>`:''} <canvas id="indRadar" height="190" style="margin:10px 0"></canvas> <span class="badge ${arch.badgeClass}" style="font-size:.65rem">${arch.name}</span> </div> <div class="card"> <div class="card-title">Willingness / Ability</div> <div class="wa-grid"> <div class="wa-cell" style="background:${w>=3?'var(--sg-bg)':'var(--sr-bg)'}"> <div class="wa-label" style="color:${w>=3?'var(--sg)':'var(--sr)'}">Willingness</div> <div class="wa-score" style="color:${w>=3?'var(--sg)':'var(--sr)'}">${w.toFixed(1)}</div> <div class="wa-sub">Convicción · Energía · Confianza</div> </div> <div class="wa-cell" style="background:${a>=3?'var(--sg-bg)':'var(--sr-bg)'}"> <div class="wa-label" style="color:${a>=3?'var(--sg)':'var(--sr)'}">Ability</div> <div class="wa-score" style="color:${a>=3?'var(--sg)':'var(--sr)'}">${a.toFixed(1)}</div> <div class="wa-sub">Comprensión · Capacidad · Soporte</div> </div> </div> </div> <div class="card"> <div class="card-title">Diagnóstico por dimensión</div> ${barsHTML} </div> </div> <div class="right-col"> <div class="narrative-block"> <div class="narrative-tag">${narrative.tag}</div> <div class="narrative-text">"${narrative.text}"</div> </div> <div class="card"> <div class="card-title">Señales de tensión</div> ${tensionsHTML} </div> <div class="card"> <div class="card-title">Conclusiones</div> ${conclusionsHTML} </div> <div class="card"> <div class="card-title" style="display:flex;align-items:center;justify-content:space-between"> <span>Acciones vinculadas</span> <button class="btn btn-ghost btn-sm" onclick="showActionModal('${selectedPerson}')">+ Acción</button> </div> ${actionsHTML} </div> ${personIvs.length>1?`<div class="card"><div class="card-title">Historial</div>${personIvs.map(iv=>{const a2=classifyArchetype(iv);return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-family:\'IBM Plex Mono\',monospace;font-size:.64rem;color:var(--muted);min-width:88px">${iv.date}</span><span class="badge ${a2.badgeClass}">${a2.name}</span><span style="font-size:.64rem;color:var(--muted)">W:${wScore(iv).toFixed(1)} A:${aScore(iv).toFixed(1)}</span><span style="font-size:.64rem;color:var(--muted);margin-left:auto">${iv.channel||''}</span></div>`;}).join(’’)}</div>`:''} </div> </div> ${timelineHTML}`;
+content.innerHTML=` <div class="ind-layout"> <div class="left-col"> <div class="card"> <div style="font-size:.98rem;font-weight:600;margin-bottom:2px">${anonMode?'████████':latest.name}</div> <div style="font-size:.66rem;color:var(--muted);font-family:\'IBM Plex Mono\',monospace">${latest.date} · ${latest.channel||'-'} · ${latest.facilitator||'-'}</div> ${latest.role&&!anonMode?`<div style="font-size:.68rem;color:var(--ink-soft);margin-top:2px">${latest.role}</div>`:''} <canvas id="indRadar" height="190" style="margin:10px 0"></canvas> <span class="badge ${arch.badgeClass}" style="font-size:.65rem">${arch.name}</span> </div> <div class="card"> <div class="card-title">Willingness / Ability</div> <div class="wa-grid"> <div class="wa-cell" style="background:${w>=3?'var(--sg-bg)':'var(--sr-bg)'}"> <div class="wa-label" style="color:${w>=3?'var(--sg)':'var(--sr)'}">Willingness</div> <div class="wa-score" style="color:${w>=3?'var(--sg)':'var(--sr)'}">${w.toFixed(1)}</div> <div class="wa-sub">Convicción · Energía · Confianza</div> </div> <div class="wa-cell" style="background:${a>=3?'var(--sg-bg)':'var(--sr-bg)'}"> <div class="wa-label" style="color:${a>=3?'var(--sg)':'var(--sr)'}">Ability</div> <div class="wa-score" style="color:${a>=3?'var(--sg)':'var(--sr)'}">${a.toFixed(1)}</div> <div class="wa-sub">Comprensión · Capacidad · Soporte</div> </div> </div> </div> <div class="card"> <div class="card-title">Diagnóstico por dimensión</div> ${barsHTML} </div> </div> <div class="right-col"> <div class="narrative-block"> <div class="narrative-tag">${narrative.tag}</div> <div class="narrative-text">"${narrative.text}"</div> </div> <div class="card"> <div class="card-title">Señales de tensión</div> ${tensionsHTML} </div> <div class="card"> <div class="card-title">Conclusiones</div> ${conclusionsHTML} </div> <div class="card"> <div class="card-title" style="display:flex;align-items:center;justify-content:space-between"> <span>Acciones vinculadas</span> <button class="btn btn-ghost btn-sm" onclick="showActionModal('${selectedPerson}')">+ Acción</button> </div> ${actionsHTML} </div> ${personIvs.length>1?`<div class="card"><div class="card-title">Historial</div>${personIvs.map(iv=>{const a2=classifyArchetype(iv);return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-family:\'IBM Plex Mono\',monospace;font-size:.64rem;color:var(--muted);min-width:88px">${iv.date}</span><span class="badge ${a2.badgeClass}">${a2.name}</span><span style="font-size:.64rem;color:var(--muted)">W:${wScore(iv).toFixed(1)} A:${aScore(iv).toFixed(1)}</span><span style="font-size:.64rem;color:var(--muted);margin-left:auto">${iv.channel||''}</span></div>`;}).join(’’)}</div>`:''} </div> </div> ${timelineHTML}`;
 
 // Radar
 
@@ -1265,7 +1265,7 @@ if(avgW<3&&avgA>=3) autoConcl.push(`El grupo puede pero no quiere: Ability (${av
 
 if(weakDims.length) autoConcl.push(`Dimensiones críticas (< 3.0): ${weakDims.join(', ')}.`);
 
-if(strongDims.length) autoConcl.push(`Palancas sólidas (≥ 4.0): ${strongDims.join(', ')}.`);
+if(strongDims.length) autoConcl.push(`Palancas sólidas (>= 4.0): ${strongDims.join(', ')}.`);
 
 // Auto actions
 
@@ -1279,7 +1279,7 @@ if(counts.aliado>0) autoActions.push({tag:‘PRIORITARIO’,urgency:‘tag-medio
 
 if(weakDims.includes(‘Capacidad percibida’)) autoActions.push({tag:‘PRIORITARIO’,urgency:‘tag-medio’,text:‘Sesiones de habilitación para áreas con baja capacidad percibida.’});
 
-autoActions.push({tag:‘SEGUIMIENTO’,urgency:‘tag-bajo’,text:`Siguiente pulso en 4–6 semanas. Foco: ${weakDims.length?weakDims.join(', '):'consolidar avances'}.`});
+autoActions.push({tag:‘SEGUIMIENTO’,urgency:‘tag-bajo’,text:`Siguiente pulso en 4-6 semanas. Foco: ${weakDims.length?weakDims.join(', '):'consolidar avances'}.`});
 
 // WA dots for quadrant
 
@@ -1341,7 +1341,7 @@ container.innerHTML=`
 </div>
 <div class="card full-w">
 <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-<span>Conclusiones del periodo${activePulse?' · '+activePulse.name:''}</span>
+<span>Conclusiones del periodo${activePulse?' / '+activePulse.name:''}</span>
 
       ${activePulse?`<button class="btn btn-ghost btn-sm" onclick="showConclusionModal('${activePulse.id}')">✎ Editar</button>`:''}
 </div>
@@ -1400,7 +1400,7 @@ const c=document.getElementById(‘actionsContent’);
 
 if(!filtered.length){c.innerHTML=’<div class="empty-state"><h3>Sin acciones</h3><p>Cambia los filtros o añade una nueva acción.</p></div>’;return;}
 
-c.innerHTML=` <div style="display:grid;grid-template-columns:90px 1fr 88px 88px 78px 78px 32px;gap:8px;padding:6px 14px;margin-bottom:4px" class="action-row-header"> <div>Prioridad</div><div>Acción</div><div>Persona</div><div>Responsable</div><div>Límite</div><div>Estado</div><div></div> </div>`+filtered.map(ac=>` <div style="display:grid;grid-template-columns:90px 1fr 88px 88px 78px 78px 32px;gap:8px;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:.74rem;"> <div><span class="action-tag ${priorityUrgency(ac.priority)}">${ac.priority}</span></div> <div><div style="font-weight:500">${ac.desc}</div>${ac.notes?`<div style="font-size:.64rem;color:var(--muted);margin-top:2px">${ac.notes}</div>`:''}</div> <div style="font-size:.68rem;color:var(--ink-soft)">${ac.person||'—'}</div> <div style="font-size:.68rem;color:var(--ink-soft)">${ac.owner||'—'}</div> <div style="font-family:\'IBM Plex Mono\',monospace;font-size:.64rem;color:var(--muted)">${ac.due||'—'}</div> <div> <select style="border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-size:.64rem;background:var(--bg);outline:none;cursor:pointer;width:100%" onchange="updateActionStatus('${ac.id}',${ac._row},this.value)"> ${['Pendiente','En curso','Completada','Cancelada'].map(s=>`<option${ac.status===s?’ selected’:’’}>${s}</option>`).join('')} </select> </div> <button class="iv-del" onclick="deleteRow('Actions','${ac.id}',${ac._row})">×</button> </div>`).join(’’);
+c.innerHTML=` <div style="display:grid;grid-template-columns:90px 1fr 88px 88px 78px 78px 32px;gap:8px;padding:6px 14px;margin-bottom:4px" class="action-row-header"> <div>Prioridad</div><div>Acción</div><div>Persona</div><div>Responsable</div><div>Límite</div><div>Estado</div><div></div> </div>`+filtered.map(ac=>` <div style="display:grid;grid-template-columns:90px 1fr 88px 88px 78px 78px 32px;gap:8px;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;font-size:.74rem;"> <div><span class="action-tag ${priorityUrgency(ac.priority)}">${ac.priority}</span></div> <div><div style="font-weight:500">${ac.desc}</div>${ac.notes?`<div style="font-size:.64rem;color:var(--muted);margin-top:2px">${ac.notes}</div>`:''}</div> <div style="font-size:.68rem;color:var(--ink-soft)">${ac.person||'-'}</div> <div style="font-size:.68rem;color:var(--ink-soft)">${ac.owner||'-'}</div> <div style="font-family:\'IBM Plex Mono\',monospace;font-size:.64rem;color:var(--muted)">${ac.due||'-'}</div> <div> <select style="border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-size:.64rem;background:var(--bg);outline:none;cursor:pointer;width:100%" onchange="updateActionStatus('${ac.id}',${ac._row},this.value)"> ${['Pendiente','En curso','Completada','Cancelada'].map(s=>`<option${ac.status===s?’ selected’:’’}>${s}</option>`).join('')} </select> </div> <button class="iv-del" onclick="deleteRow('Actions','${ac.id}',${ac._row})">×</button> </div>`).join(’’);
 
 }
 
@@ -1428,7 +1428,7 @@ async function savePulse(){
 
 const name=document.getElementById(‘pm-name’).value.trim();
 
-if(!name){document.getElementById(‘pmStatus’).textContent=‘⚠ Nombre obligatorio’;return;}
+if(!name){document.getElementById(‘pmStatus’).textContent=’! Nombre obligatorio’;return;}
 
 document.getElementById(‘pmStatus’).textContent=‘Guardando…’;
 
@@ -1516,7 +1516,7 @@ async function saveAction(){
 
 const desc=document.getElementById(‘am-desc’).value.trim();
 
-if(!desc){document.getElementById(‘amStatus’).textContent=‘⚠ Descripción obligatoria’;return;}
+if(!desc){document.getElementById(‘amStatus’).textContent=’! Descripcion obligatoria’;return;}
 
 document.getElementById(‘amStatus’).textContent=‘Guardando…’;
 
@@ -1546,7 +1546,7 @@ await loadAll();
 
 async function deleteRow(sheet,id,row){
 
-if(!confirm(’¿Eliminar este registro?’))return;
+if(!confirm(‘Eliminar este registro?’))return;
 
 setStatus(‘loading’,‘Eliminando…’);
 
