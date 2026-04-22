@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEA · Change Pulse</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -551,9 +551,9 @@ main{padding:14px;}
 </div>
 <script>
 
-// ══ CONFIG ══
+// == CONFIG ==
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1ytnRp6tJDZVzZ5kv38MERE_IB8slYDPX9O2-OQsgpZuN5aYAiSZBg1_1X5HBhxko/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGwgsiEvgHsoxxciEJBdA8i8mqVaiX5-dCO7dmTY4dFNTtkMb12cDaJmqyQrWzUghN/exec';
 
 const ORG_TOTAL = 120;
 
@@ -569,7 +569,7 @@ const HEADERS_ACTIONS = ['id','person','pulse_id','desc','priority','owner','due
 
 const HEADERS_PULSES  = ['id','name','start','end','facilitator','objective','conclusions'];
 
-// ══ DIMENSIONS ══
+// == DIMENSIONS ==
 
 const DIMS_W = [
 
@@ -593,7 +593,7 @@ const DIMS_A = [
 
 const DIMS = [...DIMS_W, ...DIMS_A];
 
-// ══ ARCHETYPES ══
+// == ARCHETYPES ==
 
 const ARCHETYPES = {
 
@@ -631,7 +631,7 @@ const ARCHETYPES = {
 
 };
 
-// ══ TENSIONS ══
+// == TENSIONS ==
 
 const TENSIONS = [
 
@@ -649,7 +649,7 @@ const TENSIONS = [
 
 ];
 
-// ══ W/A NARRATIVES ══
+// == W/A NARRATIVES ==
 
 const WA_NARRATIVES = [
 
@@ -663,7 +663,7 @@ const WA_NARRATIVES = [
 
 ];
 
-// ══ STATE ══
+// == STATE ==
 
 let interviews=[], actions=[], pulses=[];
 
@@ -673,11 +673,11 @@ let radarChart=null, aggRadarChart=null, waChart=null;
 
 let editingConclusionPulseId=null;
 
-// ══ STATUS ══
+// == STATUS ==
 
 function setStatus(s,t){document.getElementById('statusDot').className='sdot '+s;document.getElementById('statusText').textContent=t;}
 
-// ══ SCRIPT API ══
+// == SCRIPT API ==
 
 async function scriptGet(params){
 
@@ -695,7 +695,7 @@ async function scriptGet(params){
 
 }
 
-// ══ LOAD ALL ══
+// == LOAD ALL ==
 
 async function loadAll(){
 
@@ -745,7 +745,7 @@ function parseSheet(data, fallbackHeaders){
 
 }
 
-// ══ INIT SHEETS ══
+// == INIT SHEETS ==
 
 async function initSheets(){
 
@@ -767,7 +767,7 @@ async function initSheets(){
 
 }
 
-// ══ HELPERS ══
+// == HELPERS ==
 
 function sc(iv,key){return parseInt(iv[`sc_${key}`])||1;}
 
@@ -841,7 +841,7 @@ function statusBadge(s){
 
 }
 
-// ══ POPULATE FILTERS ══
+// == POPULATE FILTERS ==
 
 function populateFilters(){
 
@@ -899,7 +899,7 @@ function setSelectObj(id,opts,placeholder){
 
 }
 
-// ══ TAB SWITCHING ══
+// == TAB SWITCHING ==
 
 function switchTab(tab){
 
@@ -921,7 +921,7 @@ function switchTab(tab){
 
 }
 
-// ══ 01 LIST ══
+// == 01 LIST ==
 
 function renderList(){
 
@@ -974,7 +974,7 @@ function openIv(id){
 
 }
 
-// ══ 02 FORM ══
+// == 02 FORM ==
 
 function buildDimInputs(){
 
@@ -1081,7 +1081,7 @@ document.getElementById(‘saveBtn’).disabled=false;
 
 }
 
-// ══ 03 INDIVIDUAL ══
+// == 03 INDIVIDUAL ==
 
 function toggleAnon(){anonMode=!anonMode;document.getElementById(‘anonBox’).classList.toggle(‘on’,anonMode);updatePersonChips();renderList();if(selectedPerson)renderIndividual();}
 
@@ -1191,7 +1191,7 @@ options:{responsive:true,scales:{y:{min:1,max:5,ticks:{stepSize:1,font:{size:8}}
 
 }
 
-// ══ 04 GLOBAL ══
+// == 04 GLOBAL ==
 
 function renderGlobal(){
 
@@ -1382,7 +1382,7 @@ options:{responsive:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:8},
 
 }
 
-// ══ 05 ACTIONS ══
+// == 05 ACTIONS ==
 
 function renderActions(){
 
@@ -1418,7 +1418,7 @@ await scriptGet({action:‘updateCell’,sheet:‘Actions’,row,col:8,value:sta
 
 }
 
-// ══ PULSE MODAL ══
+// == PULSE MODAL ==
 
 function showPulseModal(){document.getElementById(‘pulseModal’).style.display=‘flex’;}
 
@@ -1450,7 +1450,7 @@ await loadAll();
 
 }
 
-// ══ CONCLUSION MODAL ══
+// == CONCLUSION MODAL ==
 
 function showConclusionModal(pulseId){
 
@@ -1490,7 +1490,7 @@ renderGlobal();
 
 }
 
-// ══ ACTION MODAL ══
+// == ACTION MODAL ==
 
 function showActionModal(person=’’){
 
@@ -1542,7 +1542,7 @@ await loadAll();
 
 }
 
-// ══ DELETE ══
+// == DELETE ==
 
 async function deleteRow(sheet,id,row){
 
@@ -1556,7 +1556,7 @@ catch(e){setStatus(‘err’,‘Error al eliminar’);console.error(e);}
 
 }
 
-// ══ INIT ══
+// == INIT ==
 
 document.getElementById(‘f-date’).value=new Date().toISOString().split(‘T’)[0];
 
