@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEA · Change Pulse</title>
+<script src="./chart.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root {
+  --er:#E2001A; --er-dark:#B50015; --er-tint:#FFF5F5;
+  --ink:#1A1A1A; --ink-soft:#555; --muted:#AAA;
+  --border:#E0E0E0; --surface:#FFF; --bg:#F7F7F7; --bg-mid:#EEE;
+  --sg:#1A7F4B; --sg-bg:#E6F4EC;
+  --sa:#9B6000; --sa-bg:#FFF5E0;
+  --sr:#C0001A; --sr-bg:#FFE8EA;
+  --ss:#555; --ss-bg:#EEE;
+  --blue:#1A5FAB; --blue-bg:#E8F0FB;
+  --purple:#6B3FA0; --purple-bg:#F0EAF8;
+  --r:3px;
+  --flow-result:#1A1A1A; --flow-input:#1A5FAB;
+  --flow-concl:#9B6000; --flow-action:#E2001A;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;}
+
+header{background:var(--surface);border-bottom:2px solid var(--er);padding:14px 32px;display:flex;align-items:center;gap:16px;}
+.er-badge{background:var(--er);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.12em;padding:4px 8px;border-radius:2px;}
+.h-title{font-size:.92rem;font-weight:600;letter-spacing:-.01em;}
+.h-sub{font-size:.66rem;color:var(--muted);}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+
+.status-bar{background:var(--bg-mid);border-bottom:1px solid var(--border);padding:5px 32px;display:flex;align-items:center;gap:10px;font-size:.64rem;font-family:'IBM Plex Mono',monospace;}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.sdot.ok{background:var(--sg);}.sdot.err{background:var(--er);}.sdot.loading{background:var(--sa);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;overflow-x:auto;}
+.tab{padding:10px 14px;font-size:.62rem;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:var(--ink);}.tab.active{color:var(--er);border-bottom-color:var(--er);font-weight:500;}
+
+main{max-width:1440px;margin:0 auto;padding:20px 32px;}
+.view{display:none;}.view.active{display:block;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;}
+.card-title{font-size:.58rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;}
+
+.flow-header{display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:10px;border-bottom:2px solid var(--border);}
+.flow-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:.6rem;font-weight:500;flex-shrink:0;}
+.flow-label{font-size:.7rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.flow-result .flow-num,.flow-input .flow-num,.flow-concl .flow-num,.flow-action .flow-num{background:var(--er);color:#fff;}
+.flow-result .flow-label,.flow-input .flow-label,.flow-concl .flow-label,.flow-action .flow-label{color:var(--ink);}
+
+.btn{padding:7px 14px;border:none;border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--er);color:#fff;}.btn-primary:hover{background:var(--er-dark);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink-soft);}.btn-ghost:hover{border-color:var(--ink);color:var(--ink);}
+.btn-sm{padding:4px 10px;font-size:.58rem;}
+.btn-icon{padding:3px 7px;font-size:.7rem;background:transparent;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;color:var(--muted);transition:all .15s;}
+.btn-icon:hover{border-color:var(--er);color:var(--er);}
+.btn-row{display:flex;gap:8px;align-items:center;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.field-label{font-size:.58rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;}
+.field-input{width:100%;border:1px solid var(--border);border-radius:var(--r);padding:7px 9px;font-family:'IBM Plex Sans',sans-serif;font-size:.78rem;color:var(--ink);background:var(--bg);outline:none;line-height:1.5;}
+.field-input:focus{border-color:var(--er);background:#fff;}
+.field-input::placeholder{color:var(--muted);}
+textarea.field-input{resize:vertical;min-height:50px;}
+select.field-input{cursor:pointer;}
+.fg{display:grid;gap:10px;}
+.fg2{grid-template-columns:1fr 1fr;}.fg3{grid-template-columns:1fr 1fr 1fr;}.fg4{grid-template-columns:1fr 1fr 1fr 1fr;}
+
+.dim-block{margin-bottom:9px;}
+.dim-row{display:grid;grid-template-columns:126px 1fr 22px;align-items:center;gap:8px;margin-bottom:3px;}
+.dim-label{font-size:.68rem;font-weight:500;}.dim-sub{font-size:.58rem;color:var(--muted);margin-top:1px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--er);cursor:pointer;}
+.range-val{font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:500;color:var(--er);text-align:center;}
+.evidence-input{display:block;width:100%;margin-left:134px;border:none;border-left:2px solid var(--border);background:transparent;font-family:'IBM Plex Sans',sans-serif;font-size:.64rem;color:var(--ink-soft);outline:none;padding:2px 8px;resize:none;min-height:20px;line-height:1.4;}
+.evidence-input:focus{border-left-color:var(--er);}
+.evidence-input::placeholder{color:var(--muted);}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:2px;font-size:.58rem;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.b-aliado{background:var(--sg-bg);color:var(--sg);}
+.b-entusiasta{background:var(--blue-bg);color:var(--blue);}
+.b-retador{background:var(--purple-bg);color:var(--purple);}
+.b-seguidor-a{background:#E8F4FD;color:#0B6E9E;}
+.b-seguidor{background:var(--sa-bg);color:var(--sa);}
+.b-desconectado{background:var(--ss-bg);color:var(--ss);}
+.b-status-p{background:#FFF5E0;color:#9B6000;}
+.b-status-e{background:#E8F0FB;color:#1A5FAB;}
+.b-status-c{background:#E6F4EC;color:#1A7F4B;}
+.b-status-x{background:#EEE;color:#555;}
+.b-org{background:#E8F0FB;color:#1A5FAB;}
+.b-proj{background:var(--purple-bg);color:var(--purple);}
+.b-entrevista{background:#E6F4EC;color:#1A7F4B;}
+.b-encuesta{background:var(--blue-bg);color:var(--blue);}
+
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.filter-select{border:1px solid var(--border);border-radius:var(--r);padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--ink);background:var(--surface);outline:none;cursor:pointer;}
+
+.iv-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s;margin-bottom:5px;}
+.iv-row:hover{border-color:var(--er);}
+.iv-name{font-weight:600;font-size:.8rem;min-width:110px;}
+.iv-meta{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);}
+.iv-notes{font-size:.68rem;color:var(--ink-soft);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.iv-del{background:none;border:none;cursor:pointer;color:var(--border);font-size:.85rem;padding:0 3px;transition:color .15s;}
+.iv-del:hover{color:var(--er);}
+
+.ind-layout{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start;}
+.left-col{display:flex;flex-direction:column;gap:10px;}
+.right-col{display:flex;flex-direction:column;gap:0;}
+.flow-section{margin-bottom:4px;}
+
+.score-big{font-size:2.2rem;font-weight:300;line-height:1;}
+.score-denom{font-size:.9rem;color:var(--muted);}
+.score-label{font-size:.62rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin:8px 0;}
+.wa-cell{padding:8px 10px;border-radius:var(--r);text-align:center;}
+.wa-axis{font-size:.56rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.wa-score-n{font-size:1.3rem;font-weight:300;line-height:1;}
+.wa-sub{font-size:.58rem;color:var(--ink-soft);margin-top:2px;}
+.bar-track{height:5px;background:var(--bg-mid);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.dim-bar-row{display:grid;grid-template-columns:126px 1fr 22px;align-items:center;gap:7px;margin-bottom:3px;}
+.dim-bar-label{font-size:.67rem;font-weight:500;}
+.bar-val{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-align:right;}
+.evidence-show{font-size:.61rem;color:var(--muted);font-style:italic;padding-left:2px;margin-top:1px;line-height:1.3;}
+.narrative-block{background:var(--ink);color:#fff;border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
+.narrative-tag{font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:5px;}
+.narrative-text{font-size:.82rem;font-weight:300;line-height:1.5;font-style:italic;}
+
+.edit-item{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--bg);border-radius:var(--r);margin-bottom:5px;border:1px solid var(--border);}
+.edit-item-body{flex:1;font-size:.74rem;line-height:1.45;color:var(--ink-soft);}
+.edit-item-tag{font-family:'IBM Plex Mono',monospace;font-size:.54rem;letter-spacing:.06em;padding:2px 5px;border-radius:2px;white-space:nowrap;margin-top:2px;font-weight:500;flex-shrink:0;}
+.tag-urgente{background:var(--sr-bg);color:var(--sr);}
+.tag-medio{background:var(--sa-bg);color:var(--sa);}
+.tag-bajo{background:var(--sg-bg);color:var(--sg);}
+.tag-seguimiento{background:var(--blue-bg);color:var(--blue);}
+.tension-item{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:var(--r);margin-bottom:5px;font-size:.72rem;line-height:1.4;}
+.tension-name{font-weight:600;font-size:.68rem;margin-bottom:2px;}
+
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+.chip{padding:4px 10px;border-radius:2px;background:var(--surface);border:1px solid var(--border);font-size:.66rem;cursor:pointer;font-weight:500;transition:all .15s;}
+.chip.active{background:var(--er);color:#fff;border-color:var(--er);}
+.chip:hover:not(.active){border-color:var(--ink);}
+.anon-toggle{display:flex;align-items:center;gap:6px;font-size:.66rem;color:var(--ink-soft);cursor:pointer;user-select:none;}
+.tbox{width:28px;height:16px;background:var(--border);border-radius:8px;position:relative;transition:background .2s;flex-shrink:0;}
+.tbox.on{background:var(--er);}
+.tknob{width:12px;height:12px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.tbox.on .tknob{left:14px;}
+
+/* STATS */
+.stat-strip{display:grid;gap:10px;margin-bottom:12px;}
+.s5{grid-template-columns:repeat(5,1fr);}
+.s4{grid-template-columns:repeat(4,1fr);}
+.s3{grid-template-columns:repeat(3,1fr);}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;}
+.stat-num{font-size:1.5rem;font-weight:300;line-height:1;margin-bottom:3px;}
+.stat-lbl{font-size:.55rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+.agg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.full-w{grid-column:1/-1;}
+.dist-row{display:grid;grid-template-columns:136px 1fr 22px;align-items:center;gap:8px;margin-bottom:7px;}
+.dist-label{font-size:.7rem;font-weight:500;display:flex;align-items:center;gap:5px;}
+.dist-track{height:6px;background:var(--bg-mid);border-radius:3px;overflow:hidden;}
+.dist-fill{height:100%;border-radius:3px;}
+.dist-val{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);text-align:right;}
+.global-conclusion{border-left:3px solid var(--er);padding:8px 11px;background:var(--er-tint);border-radius:0 var(--r) var(--r) 0;font-size:.72rem;line-height:1.5;margin-bottom:5px;color:var(--ink-soft);}
+
+/* QUALITATIVE */
+.quote-block{border-left:3px solid var(--border);padding:8px 12px;margin-bottom:6px;font-size:.74rem;font-style:italic;color:var(--ink-soft);line-height:1.5;background:var(--bg);border-radius:0 var(--r) var(--r) 0;}
+.cluster-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;}
+.cluster-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.cluster-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;}
+.cluster-name{font-weight:600;font-size:.84rem;}
+.cluster-count{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);}
+.cluster-bar{height:4px;background:var(--bg-mid);border-radius:2px;margin-bottom:10px;overflow:hidden;}
+.cluster-bar-fill{height:100%;border-radius:2px;}
+
+/* SURVEY */
+.survey-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .15s;margin-bottom:6px;}
+.survey-card:hover,.survey-card.selected{border-color:var(--er);}
+.survey-card.selected{background:var(--er-tint);}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);}
+.upload-zone:hover{border-color:var(--er);background:var(--er-tint);}
+
+/* ACTIONS KANBAN */
+.actions-kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.kanban{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.kanban-col{background:var(--bg);border-radius:var(--r);padding:12px;}
+.kanban-col-header{font-size:.64rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;font-weight:500;padding:4px 0;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.action-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;transition:box-shadow .15s;}
+.action-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.action-card-meta{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+.action-card-desc{font-size:.76rem;line-height:1.45;color:var(--ink);margin-bottom:8px;font-weight:500;}
+.action-card-footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.action-card-sub{font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.status-select{border:1px solid var(--border);border-radius:var(--r);padding:2px 5px;font-size:.6rem;background:var(--bg);outline:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+
+/* COHERENCE */
+.coherence-block{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:var(--r);margin-bottom:10px;font-size:.76rem;}
+
+/* RESP TABLE */
+.resp-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:5px;}
+.resp-grid{display:grid;grid-template-columns:90px 110px 90px 70px 1fr;gap:8px;align-items:start;}
+
+/* METHODOLOGY */
+.meth-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px;}
+.meth-h1{font-size:1.1rem;font-weight:600;margin-bottom:6px;letter-spacing:-.01em;}
+.meth-h2{font-size:.82rem;font-weight:600;margin-bottom:8px;margin-top:20px;color:var(--ink);}
+.meth-p{font-size:.78rem;color:var(--ink-soft);line-height:1.65;margin-bottom:10px;}
+.meth-table{width:100%;border-collapse:collapse;font-size:.74rem;margin-bottom:12px;}
+.meth-table th{background:var(--bg-mid);padding:8px 10px;text-align:left;font-size:.6rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.meth-table td{padding:9px 10px;border-bottom:1px solid var(--bg-mid);vertical-align:top;line-height:1.4;}
+.meth-table tr:last-child td{border-bottom:none;}
+.arch-meth-card{padding:12px 14px;border-radius:var(--r);margin-bottom:8px;border-left:4px solid;}
+.dim-meth-card{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:10px 14px;background:var(--bg);border-radius:var(--r);margin-bottom:6px;align-items:start;}
+.dim-meth-name{font-weight:600;font-size:.78rem;}
+.dim-meth-axis{font-size:.6rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;margin-top:2px;}
+.dim-meth-desc{font-size:.74rem;color:var(--ink-soft);line-height:1.5;}
+
+/* MODALS */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;}
+.modal-box{background:#fff;border-radius:var(--r);padding:22px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-title{font-weight:600;font-size:.88rem;margin-bottom:14px;}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state h3{font-size:.88rem;font-weight:600;margin-bottom:5px;color:var(--ink-soft);}
+.empty-state p{font-size:.72rem;}
+canvas{display:block;width:100%!important;}
+
+@media(max-width:960px){
+  main{padding:12px;}
+  .agg-grid,.ind-layout,.fg2,.fg3,.fg4,.kanban{grid-template-columns:1fr;}
+  .s5,.s4,.s3,.actions-kpi-strip{grid-template-columns:repeat(2,1fr);}
+  .left-col{position:static;}
+  .resp-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="er-badge">NEA</div>
+    <div>
+      <div class="h-title">Change Pulse Monitor</div>
+      <div class="h-sub">Gestion del Cambio · Proyecto NEA · 176 personas en alcance</div>
+    </div>
+  </div>
+  <div class="h-right">
+    <button class="btn btn-ghost btn-sm" onclick="loadAll()">Actualizar</button>
+  </div>
+</header>
+
+<div class="status-bar">
+  <div class="sdot" id="statusDot"></div>
+  <span id="statusText">Conectando...</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('list')">01 · Entrevistas</div>
+  <div class="tab" onclick="switchTab('individual')">02 · Individual</div>
+  <div class="tab" onclick="switchTab('surveys')">03 · Encuestas</div>
+  <div class="tab" onclick="switchTab('survey-analysis')">04 · Analisis encuesta</div>
+  <div class="tab" onclick="switchTab('global')">05 · Global</div>
+  <div class="tab" onclick="switchTab('actions')">06 · Acciones</div>
+  <div class="tab" onclick="switchTab('methodology')">07 · Metodologia</div>
+</div>
+
+<main>
+
+<!-- 01 ENTREVISTAS -->
+<div class="view active" id="view-list">
+  <div class="filter-bar">
+    <button class="btn btn-primary btn-sm" onclick="openNewInterview()">+ Nueva entrevista</button>
+    <select class="filter-select" id="fl-person" onchange="renderList()"><option value="">Todas las personas</option></select>
+    <select class="filter-select" id="fl-arch" onchange="renderList()">
+      <option value="">Todos los arquetipos</option>
+      <option value="aliado">Aliado Activo</option><option value="entusiasta">Entusiasta</option>
+      <option value="retador">Retador</option><option value="seguidorA">Seguidor Activo</option>
+      <option value="seguidor">Seguidor Pasivo</option><option value="desconectado">Desconectado</option>
+    </select>
+    <select class="filter-select" id="fl-channel" onchange="renderList()"><option value="">Todos los canales</option></select>
+    <select class="filter-select" id="fl-pulse-list" onchange="renderList()"><option value="">Todos los pulsos</option></select>
+  </div>
+  <div id="listContainer"><div class="empty-state"><h3>Cargando...</h3></div></div>
+
+  <!-- NEW INTERVIEW PANEL (hidden by default) -->
+  <div id="newInterviewPanel" style="display:none;margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-weight:600;font-size:.88rem">Nueva entrevista</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeNewInterview()">Cerrar</button>
+    </div>
+    <input type="hidden" id="f-edit-id">
+    <div class="card">
+      <div class="card-title">Identificacion</div>
+      <div class="fg fg4" style="margin-bottom:10px">
+        <div><div class="field-label">Nombre / Codigo</div><input class="field-input" id="f-name" type="text" placeholder="Ana M."></div>
+        <div><div class="field-label">Fecha</div><input class="field-input" id="f-date" type="date"></div>
+        <div><div class="field-label">Rol / Area</div><input class="field-input" id="f-role" type="text" placeholder="Responsable logistica"></div>
+        <div><div class="field-label">Pulso asociado</div><select class="field-input" id="f-pulse"><option value="">Sin pulso</option></select></div>
+      </div>
+      <div class="fg fg2">
+        <div><div class="field-label">Canal</div>
+          <select class="field-input" id="f-channel">
+            <option>Cafe de equipo</option><option>Entrevista individual</option>
+            <option>Observacion directa</option><option>Feedback indirecto</option><option>Reunion de trabajo</option><option>Otro</option>
+          </select>
+        </div>
+        <div><div class="field-label">Facilitador</div><input class="field-input" id="f-facilitator" type="text" placeholder="Quien tomo el pulso"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Contexto</div>
+      <div class="fg fg2">
+        <div><div class="field-label">Objetivo / contexto</div><textarea class="field-input" id="f-context" placeholder="Que queriamos explorar?"></textarea></div>
+        <div><div class="field-label">Observaciones del facilitador</div><textarea class="field-input" id="f-obs" placeholder="Dinamicas, tensiones, postura..."></textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Quotes y titulares</div>
+      <textarea class="field-input" id="f-quotes" style="min-height:60px" placeholder="Frases literales. Separar con | para mostrarlas individualmente."></textarea>
+    </div>
+    <div class="card">
+      <div class="card-title">Dimensiones · Score 1-5 + Evidencia</div>
+      <div style="font-size:.64rem;color:var(--muted);margin-bottom:10px">
+        <strong style="color:var(--sg)">Willingness:</strong> Conviccion · Energia · Confianza &nbsp;|&nbsp;
+        <strong style="color:var(--blue)">Ability:</strong> Comprension · Capacidad · Soporte
+      </div>
+      <div id="dimInputs"></div>
+    </div>
+    <div class="card">
+      <div class="fg fg2">
+        <div><div class="field-label">Notas de cierre</div><textarea class="field-input" id="f-notes" placeholder="Acciones acordadas..."></textarea></div>
+        <div><div class="field-label">Conclusiones</div><textarea class="field-input" id="f-conclusions" placeholder="Sintesis interpretativa..."></textarea></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveBtn" onclick="saveInterview()">Guardar entrevista</button>
+      <button class="btn btn-ghost" onclick="closeNewInterview()">Cancelar</button>
+      <span id="saveStatus" style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 02 INDIVIDUAL -->
+<div class="view" id="view-individual">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:.74rem;font-weight:600;color:var(--ink-soft)">Selecciona una persona</div>
+    <label class="anon-toggle" onclick="toggleAnon()">
+      <div class="tbox" id="anonBox"><div class="tknob"></div></div>
+      Modo anonimo
+    </label>
+  </div>
+  <div class="chips" id="personChips"></div>
+  <div id="individualContent"><div class="empty-state"><h3>Sin datos</h3></div></div>
+</div>
+
+<!-- 03 ENCUESTAS -->
+<div class="view" id="view-surveys">
+  <div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+    <div>
+      <div style="font-size:.7rem;font-weight:600;color:var(--ink-soft);margin-bottom:10px">Encuestas cargadas</div>
+      <div id="surveyList"><div class="empty-state" style="padding:16px 0"><p>Sin encuestas</p></div></div>
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)" style="margin-top:10px">
+        <div style="font-size:1.5rem;color:var(--muted);margin-bottom:6px">+</div>
+        <div style="font-size:.8rem;font-weight:600;margin-bottom:3px">Cargar encuesta</div>
+        <div style="font-size:.68rem;color:var(--muted)">Arrastra el .xlsx o haz clic</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+    </div>
+    <div>
+      <div id="surveyMainDetail">
+        <div class="empty-state"><h3>Selecciona o carga una encuesta</h3></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 ANALISIS ENCUESTA -->
+<div class="view" id="view-survey-analysis">
+  <div class="filter-bar">
+    <select class="filter-select" id="sa-survey" onchange="renderSurveyAnalysis()"><option value="">Selecciona una encuesta</option></select>
+    <select class="filter-select" id="sa-area" onchange="renderSurveyAnalysis()"><option value="">Todas las areas</option></select>
+    <select class="filter-select" id="sa-colectivo" onchange="renderSurveyAnalysis()">
+      <option value="">Todos los colectivos</option><option>Organizacion</option><option>Equipo Proyecto</option>
+    </select>
+    <select class="filter-select" id="sa-arch" onchange="renderSurveyAnalysis()">
+      <option value="">Todos los arquetipos</option>
+      <option value="aliado">Aliado Activo</option><option value="entusiasta">Entusiasta</option>
+      <option value="retador">Retador</option><option value="seguidorA">Seguidor Activo</option>
+      <option value="seguidor">Seguidor Pasivo</option><option value="desconectado">Desconectado</option>
+    </select>
+  </div>
+  <div id="surveyAnalysisContent"><div class="empty-state"><h3>Selecciona una encuesta</h3></div></div>
+</div>
+
+<!-- 05 GLOBAL -->
+<div class="view" id="view-global">
+  <div class="filter-bar">
+    <select class="filter-select" id="gl-pulse" onchange="renderGlobal()"><option value="">Todos los periodos</option></select>
+    <select class="filter-select" id="gl-source" onchange="renderGlobal()">
+      <option value="all">Entrevistas + Encuestas</option>
+      <option value="interviews">Solo entrevistas</option>
+      <option value="surveys">Solo encuestas</option>
+    </select>
+    <select class="filter-select" id="gl-colectivo" onchange="renderGlobal()">
+      <option value="">Todos los colectivos</option>
+      <option value="Organizacion">Organizacion impactada</option>
+      <option value="Equipo Proyecto">Equipo de proyecto</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="showPulseModal()">+ Nuevo pulso</button>
+  </div>
+  <div id="globalContent"><div class="empty-state"><h3>Sin datos</h3></div></div>
+</div>
+
+<!-- 06 ACCIONES -->
+<div class="view" id="view-actions">
+  <div class="filter-bar">
+    <button class="btn btn-primary btn-sm" onclick="showActionModal()">+ Nueva accion</button>
+    <select class="filter-select" id="ac-pulse" onchange="renderActions()"><option value="">Todos los pulsos</option></select>
+    <select class="filter-select" id="ac-origen" onchange="renderActions()">
+      <option value="">Todos los origenes</option><option>Entrevista</option><option>Encuesta</option>
+    </select>
+    <select class="filter-select" id="ac-arch" onchange="renderActions()">
+      <option value="">Todos los arquetipos</option>
+      <option value="aliado">Aliado Activo</option><option value="entusiasta">Entusiasta</option>
+      <option value="retador">Retador</option><option value="seguidorA">Seguidor Activo</option>
+      <option value="seguidor">Seguidor Pasivo</option><option value="desconectado">Desconectado</option>
+    </select>
+    <select class="filter-select" id="ac-area" onchange="renderActions()"><option value="">Todas las areas</option></select>
+    <select class="filter-select" id="ac-status" onchange="renderActions()">
+      <option value="">Todos los estados</option>
+      <option>Pendiente</option><option>En curso</option><option>Completada</option><option>Cancelada</option>
+    </select>
+  </div>
+  <div id="actionsContent"><div class="empty-state"><h3>Sin acciones</h3></div></div>
+</div>
+
+<!-- 07 METODOLOGIA -->
+<div class="view" id="view-methodology">
+  <div style="max-width:900px">
+
+    <!-- MODEL CONFIGURATOR -->
+    <div class="meth-section" style="border-left:3px solid var(--er)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="meth-h1" style="margin-bottom:0">Configuracion del modelo</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="modelVersionBadge" style="font-family:'IBM Plex Mono',monospace;font-size:.64rem;padding:3px 8px;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--muted)">v1</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleModelEditor()">Editar modelo</button>
+        </div>
+      </div>
+      <div id="modelSummary" style="font-size:.74rem;color:var(--ink-soft);margin-bottom:0"></div>
+
+      <!-- EDITOR (hidden by default) -->
+      <div id="modelEditor" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+
+        <!-- THRESHOLDS -->
+        <div class="meth-h2" style="margin-top:0">Umbrales de clasificacion</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <div class="card-title" style="margin-bottom:10px;color:var(--sg)">Willingness (W)</div>
+            <div style="margin-bottom:10px">
+              <div class="field-label">Umbral Bajo / Medio (Low/Mid)</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" min="1" max="5" step="0.01" id="cfg-w-low" oninput="updateModelPreview()" style="flex:1">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:500;color:var(--er);min-width:32px;text-align:center" id="cfg-w-low-val">3.33</div>
+              </div>
+            </div>
+            <div>
+              <div class="field-label">Umbral Medio / Alto (Mid/High)</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" min="1" max="5" step="0.01" id="cfg-w-high" oninput="updateModelPreview()" style="flex:1">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:500;color:var(--er);min-width:32px;text-align:center" id="cfg-w-high-val">4.33</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card-title" style="margin-bottom:10px;color:var(--blue)">Ability (A)</div>
+            <div style="margin-bottom:10px">
+              <div class="field-label">Umbral Bajo / Medio (Low/Mid)</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" min="1" max="5" step="0.01" id="cfg-a-low" oninput="updateModelPreview()" style="flex:1">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:500;color:var(--er);min-width:32px;text-align:center" id="cfg-a-low-val">3.33</div>
+              </div>
+            </div>
+            <div>
+              <div class="field-label">Umbral Medio / Alto (Mid/High)</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" min="1" max="5" step="0.01" id="cfg-a-high" oninput="updateModelPreview()" style="flex:1">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:500;color:var(--er);min-width:32px;text-align:center" id="cfg-a-high-val">4.33</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="field-label">Split Seguidor (score total)</div>
+          <div style="display:flex;align-items:center;gap:10px;max-width:400px">
+            <input type="range" min="1" max="5" step="0.01" id="cfg-split" oninput="updateModelPreview()" style="flex:1">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:500;color:var(--er);min-width:32px;text-align:center" id="cfg-split-val">3.83</div>
+          </div>
+          <div style="font-size:.66rem;color:var(--muted);margin-top:4px">Por encima de este score total = Seguidor Activo · Por debajo = Seguidor Pasivo</div>
+        </div>
+
+        <!-- MATRIX MAP -->
+        <div class="meth-h2">Mapa de arquetipos · Matriz 3x3</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">Asigna un arquetipo a cada combinacion de nivel W y nivel A. Las celdas de Seguidor se subdividen automaticamente por el split de score total.</div>
+        <div id="matrixEditor" style="display:grid;grid-template-columns:100px 1fr 1fr 1fr;gap:4px;margin-bottom:16px;max-width:700px">
+          <!-- populated by JS -->
+        </div>
+
+        <!-- PREVIEW -->
+        <div class="meth-h2">Vista previa de la distribucion</div>
+        <div id="modelPreview" style="background:var(--bg);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:.74rem;color:var(--ink-soft)">Ajusta los parametros para ver la distribucion estimada.</div>
+
+        <!-- SAVE -->
+        <div class="fg fg2" style="margin-bottom:10px">
+          <div><div class="field-label">Facilitador que aplica el cambio</div><input class="field-input" id="cfg-facilitator" placeholder="Nombre del facilitador"></div>
+          <div><div class="field-label">Notas del cambio</div><input class="field-input" id="cfg-notes" placeholder="Motivo del ajuste..."></div>
+        </div>
+        <div style="background:var(--sa-bg);border:1px solid var(--sa);border-radius:var(--r);padding:10px 12px;font-size:.72rem;color:var(--sa);margin-bottom:12px">
+          Aplicar este cambio reclasificara todos los datos historicos con el nuevo modelo. El numero de version quedara registrado en cada analisis.
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="applyModelConfig()">Aplicar y guardar modelo</button>
+          <button class="btn btn-ghost" onclick="resetModelEditor()">Restablecer valores actuales</button>
+          <span id="cfgStatus" style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+        </div>
+
+        <!-- VERSION HISTORY -->
+        <div class="meth-h2" style="margin-top:16px">Historial de versiones</div>
+        <div id="modelVersionHistory" style="font-size:.72rem;color:var(--ink-soft)">Cargando...</div>
+      </div>
+    </div>
+
+    <div class="meth-section">
+      <div class="meth-h1">Marco metodologico · Change Pulse NEA</div>
+      <div class="meth-p">El Change Pulse Monitor es un sistema de seguimiento continuo del estado de cambio organizacional durante la transformacion NEA. Combina dos fuentes de datos — entrevistas cualitativas y encuestas cuantitativas — para producir un diagnostico compartido que oriente las decisiones del equipo de cambio.</div>
+      <div class="meth-p">El modelo se basa en la distincion entre <strong>querer cambiar</strong> y <strong>poder cambiar</strong>, representados por los ejes Willingness y Ability. Esta separacion es clave porque los bloqueos de cada eje requieren intervenciones distintas: un deficit de Willingness se aborda con narrativa, conviccion y confianza; un deficit de Ability se aborda con formacion, soporte y claridad operativa.</div>
+      <div class="meth-p" style="background:var(--bg);padding:12px;border-radius:var(--r);border-left:3px solid var(--er)"><strong>Principio de compresion:</strong> Lo que sube en la jerarquia de governance se comprime, no se resume. Cada nivel recibe la informacion en el formato y densidad apropiados para su rol de decision.</div>
+    </div>
+
+    <div class="meth-section">
+      <div class="meth-h1">El framework W/A</div>
+      <div class="meth-p">Cada persona o respuesta se posiciona en un espacio bidimensional definido por dos ejes independientes. La combinacion de ambos determina el arquetipo de cambio y las acciones prioritarias.</div>
+      <table class="meth-table">
+        <thead><tr><th>Eje</th><th>Que mide</th><th>Escala</th><th>Umbrales</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Willingness (W)</strong></td><td>Disposicion activa al cambio: conviccion, energia y confianza en quien lidera</td><td>1.0 – 5.0 (media de 3 dimensiones)</td><td>Bajo &lt; 3.0 · Medio 3.0-4.0 · Alto &gt; 4.0</td></tr>
+          <tr><td><strong>Ability (A)</strong></td><td>Capacidad percibida para ejecutar el cambio: comprension, capacidad tecnica y soporte disponible</td><td>1.0 – 5.0 (media de 3 dimensiones)</td><td>Bajo &lt; 3.0 · Medio 3.0-4.0 · Alto &gt; 4.0</td></tr>
+        </tbody>
+      </table>
+      <div class="meth-h2">Las 6 dimensiones</div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--sg)">Conviccion</div><div class="dim-meth-axis" style="color:var(--sg)">Willingness</div></div>
+        <div class="dim-meth-desc">Cree que el cambio es necesario y beneficioso para la organizacion y para su propio ambito de trabajo. Mide el grado de alineacion con el proposito del proyecto, no solo la aceptacion superficial.</div>
+      </div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--sg)">Energia / Agencia</div><div class="dim-meth-axis" style="color:var(--sg)">Willingness</div></div>
+        <div class="dim-meth-desc">Voluntad activa de contribuir al proceso de cambio, no solo de aceptarlo pasivamente. Distingue a quien participa de quien simplemente no resiste.</div>
+      </div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--sg)">Confianza liderazgo</div><div class="dim-meth-axis" style="color:var(--sg)">Willingness</div></div>
+        <div class="dim-meth-desc">Percibe que el equipo directivo esta comprometido con el proyecto y es capaz de liderarlo. Sin esta dimension, la conviccion en el cambio puede coexistir con la desconfianza en quien lo conduce.</div>
+      </div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--blue)">Comprension</div><div class="dim-meth-axis" style="color:var(--blue)">Ability</div></div>
+        <div class="dim-meth-desc">Entiende el que y el como del cambio: por que se impulsa, que implica para su area y como afectara a su trabajo cotidiano. La falta de comprension operativa es la brecha mas frecuente y la mas facil de corregir.</div>
+      </div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--blue)">Capacidad percibida</div><div class="dim-meth-axis" style="color:var(--blue)">Ability</div></div>
+        <div class="dim-meth-desc">Se siente preparado para operar en el nuevo modelo. Incluye tanto la confianza en sus habilidades actuales como la percepcion de que podra adquirir las que le faltan.</div>
+      </div>
+      <div class="dim-meth-card">
+        <div><div class="dim-meth-name" style="color:var(--blue)">Red de soporte</div><div class="dim-meth-axis" style="color:var(--blue)">Ability</div></div>
+        <div class="dim-meth-desc">Percibe que tiene con quien apoyarse durante el proceso: pares, responsables, equipo de proyecto o PMO. La ausencia de soporte percibido amplifica el impacto negativo de cualquier otra brecha.</div>
+      </div>
+    </div>
+
+    <div class="meth-section">
+      <div class="meth-h1">Los 5 arquetipos de cambio</div>
+      <div class="meth-p">La combinacion de los niveles W y A en una matriz 3x3 produce 5 arquetipos. Cada arquetipo tiene un patron de riesgo distinto y requiere un tipo de intervencion diferente.</div>
+      <div id="methMatrixDisplay">
+      <table class="meth-table" style="margin-bottom:16px">
+        <thead><tr><th></th><th>W Bajo (&lt; 3.33)</th><th>W Medio (3.33–4.33)</th><th>W Alto (&gt; 4.33)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A Alto (&gt; 4.33)</strong></td><td style="background:#F0EAF8;color:var(--purple)">Retador</td><td style="background:#F0EAF8;color:var(--purple)">Retador</td><td style="background:var(--sg-bg);color:var(--sg)">Aliado Activo</td></tr>
+          <tr><td><strong>A Medio (3.33–4.33)</strong></td><td style="background:var(--ss-bg);color:var(--ss)">Desconectado</td><td style="background:var(--sa-bg);color:var(--sa)">Seguidor Pasivo</td><td style="background:var(--sg-bg);color:var(--sg)">Aliado Activo</td></tr>
+          <tr><td><strong>A Bajo (&lt; 3.33)</strong></td><td style="background:var(--ss-bg);color:var(--ss)">Desconectado</td><td style="background:var(--sa-bg);color:var(--sa)">Seguidor Pasivo</td><td style="background:var(--blue-bg);color:var(--blue)">Entusiasta</td></tr>
+        </tbody>
+      </table>
+      <div class="arch-meth-card" style="border-color:var(--sg);background:var(--sg-bg)">
+        <div style="font-weight:600;font-size:.84rem;color:var(--sg);margin-bottom:4px">Aliado Activo · W Alto + A Medio/Alto</div>
+        <div class="dim-meth-desc">Alta disposicion y capacidad suficiente. Motor natural del cambio. El riesgo principal es la infra-utilizacion: si no se le asigna un rol activo, su energia se disipa o se canaliza fuera del proyecto. Palanca: activacion como embajador.</div>
+      </div>
+      <div class="arch-meth-card" style="border-color:var(--blue);background:var(--blue-bg)">
+        <div style="font-weight:600;font-size:.84rem;color:var(--blue);margin-bottom:4px">Entusiasta · W Alto + A Bajo</div>
+        <div class="dim-meth-desc">Quiere pero no puede aun. Alta disposicion con capacidad todavia en desarrollo. El riesgo es la frustracion temprana si la brecha de capacidad no se atiende con formacion especifica. Palanca: habilitacion urgente y mentoring.</div>
+      </div>
+      <div class="arch-meth-card" style="border-color:var(--purple);background:var(--purple-bg)">
+        <div style="font-weight:600;font-size:.84rem;color:var(--purple);margin-bottom:4px">Retador · W Bajo + A Alto | W Medio + A Alto</div>
+        <div class="dim-meth-desc">Puede pero no quiere, o no confia. Alta capacidad con disposicion cuestionada — es el perfil con mayor brecha entre lo que podria aportar y lo que aporta. La causa puede ser informacional, relacional o historica. Palanca: conversacion 1:1 para identificar la raiz y canalizar su perspectiva critica como input constructivo.</div>
+      </div>
+      <div class="arch-meth-card" style="border-color:#0B6E9E;background:#E8F4FD">
+        <div style="font-weight:600;font-size:.84rem;color:#0B6E9E;margin-bottom:4px">Seguidor Activo &middot; W Medio + A Medio/Bajo, score total &gt; 3.83</div>
+        <div class="dim-meth-desc">Perfil en zona de transicion con tendencia positiva. Disposicion y capacidad medias pero con momentum favorable — esta en la frontera de convertirse en Aliado. Es el arquetipo con mayor potencial de mejora a corto plazo: con un rol concreto y reconocimiento activo puede evolucionar en el siguiente ciclo de cambio. No requiere intervencion urgente sino activacion estrategica deliberada.</div>
+      </div>
+      <div class="arch-meth-card" style="border-color:var(--sa);background:var(--sa-bg)">
+        <div style="font-weight:600;font-size:.84rem;color:var(--sa);margin-bottom:4px">Seguidor Pasivo &middot; W Medio + A Medio/Bajo, score total &le; 3.83</div>
+        <div class="dim-meth-desc">Perfil con disposicion y capacidad medias pero sin tendencia de mejora activa. Acepta el cambio pero no lo ha interiorizado como propio. En momentos de friccion tiende a la resistencia pasiva o a amplificar dudas entre iguales. Se distingue del Seguidor Activo por un score total igual o inferior a 3.83. Palanca: asignar un rol concreto que genere agencia y conectar con un aliado de su entorno.</div>
+      </div>
+      <div class="arch-meth-card" style="border-color:var(--ss);background:var(--ss-bg)">
+        <div style="font-weight:600;font-size:.84rem;color:var(--ss);margin-bottom:4px">Desconectado · W Bajo + A Bajo | W Bajo + A Medio</div>
+        <div class="dim-meth-desc">Baja disposicion con capacidad limitada o media. Sin imagen coherente del proyecto ni sentido de relevancia personal. Cuando la disposicion es baja, la capacidad media no se traduce en contribucion — el perfil permanece pasivo o en riesgo de desvinculacion silenciosa. No es necesariamente resistencia activa: frecuentemente es ausencia de informacion, contexto o vinculo con el proyecto. Palanca: briefing individualizado, identificacion de barreras e incorporacion a la narrativa del cambio.</div>
+      </div>
+    </div>
+
+    <div class="meth-section">
+      <div class="meth-h1">Fuentes de datos y convergencia</div>
+      <div class="meth-p">El modelo acepta dos tipos de input que convergen en el mismo framework W/A:</div>
+      <table class="meth-table">
+        <thead><tr><th>Fuente</th><th>Mecanismo</th><th>Cobertura</th><th>Fortaleza</th><th>Limitacion</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Entrevistas / Cafes</strong></td>
+            <td>Facilitador asigna score 1-5 por dimension + evidencia cualitativa</td>
+            <td>Muestra reducida (10-15 personas por sesion)</td>
+            <td>Riqueza cualitativa, contexto, quotes literales, matices</td>
+            <td>Sesgo del facilitador, muestra no representativa</td>
+          </tr>
+          <tr>
+            <td><strong>Encuestas masivas</strong></td>
+            <td>Preguntas mapeadas al framework W/A segun colectivo</td>
+            <td>Hasta el 100% del colectivo impactado</td>
+            <td>Representatividad estadistica, anonimato, cobertura</td>
+            <td>Perdida de matiz, sesgo de respuesta, respuestas superficiales</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="meth-h2">Mapeo encuesta → framework (Organizacion impactada)</div>
+      <table class="meth-table">
+        <thead><tr><th>Pregunta</th><th>Dimension</th><th>Peso</th></tr></thead>
+        <tbody>
+          <tr><td>P1 · Entiendo por que se impulsa NEA y su relevancia</td><td>Comprension + Conviccion</td><td>Cuenta en ambas dimensiones</td></tr>
+          <tr><td>P2 · Tengo idea de como NEA impactara en mi trabajo</td><td>Comprension</td><td>Completo</td></tr>
+          <tr><td>P3 · Tengo actitud abierta ante los cambios</td><td>Energia / Agencia</td><td>Completo</td></tr>
+          <tr><td>P4 · Me siento mas tranquilo que preocupado</td><td>Confianza liderazgo</td><td>Proxy</td></tr>
+          <tr><td>P5 · Podre adquirir las habilidades necesarias</td><td>Capacidad percibida</td><td>Completo</td></tr>
+          <tr><td>P6 · Me siento capaz de adaptar mi forma de trabajar</td><td>Capacidad percibida</td><td>Completo</td></tr>
+          <tr><td>P7 · Dispondre del tiempo y apoyo necesarios</td><td>Red de soporte</td><td>Completo</td></tr>
+          <tr><td>P8 · La comunicacion ha sido clara y suficiente</td><td>Confianza liderazgo</td><td>Completo</td></tr>
+        </tbody>
+      </table>
+      <div class="meth-h2">Mapeo encuesta → framework (Equipo de proyecto)</div>
+      <table class="meth-table">
+        <thead><tr><th>Pregunta</th><th>Dimension</th><th>Peso</th></tr></thead>
+        <tbody>
+          <tr><td>P1 · El piloto aportara valor para Aprovisionamiento</td><td>Comprension</td><td>Completo</td></tr>
+          <tr><td>P2 · Veo beneficios concretos a nivel de mi rol</td><td>Conviccion</td><td>Completo</td></tr>
+          <tr><td>P3 · Estoy dispuesto a contribuir activamente</td><td>Energia / Agencia</td><td>Completo</td></tr>
+          <tr><td>P4 · Predomina la confianza sobre el estres</td><td>Confianza liderazgo</td><td>Completo</td></tr>
+          <tr><td>P5 · Tengo el conocimiento necesario para el piloto</td><td>Capacidad percibida</td><td>Completo</td></tr>
+          <tr><td>P6 · Me siento seguro para cambiar el enfoque y ajustar</td><td>Capacidad percibida + Conviccion</td><td>Cuenta en ambas</td></tr>
+          <tr><td>P7 · Dispongo del tiempo necesario para el proyecto</td><td>Red de soporte</td><td>Completo</td></tr>
+          <tr><td>P8 · La comunicacion del proyecto es consistente</td><td>Confianza liderazgo</td><td>Completo</td></tr>
+        </tbody>
+      </table>
+                  <div class="meth-p" style="background:var(--bg);padding:10px;border-radius:var(--r);margin-top:6px"><strong>Nota sobre umbrales:</strong> Para la clasificacion en arquetipos se utilizan umbrales W/A de Bajo &lt; 3.0 / Medio 3.0–4.0 / Alto &gt; 4.0. Este umbral asegura una distribucion discriminante incluso cuando los scores medios se situan en la zona 3.5–4.0, que es el rango tipico en encuestas de transformacion con sesgo de respuesta positivo.</div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<!-- MODALS -->
+<div class="modal-bg" id="pulseModal">
+  <div class="modal-box">
+    <div class="modal-title">Nuevo pulso</div>
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div><div class="field-label">Nombre</div><input class="field-input" id="pm-name" placeholder="Pulso Abril 2026"></div>
+      <div><div class="field-label">Fecha inicio</div><input class="field-input" id="pm-start" type="date"></div>
+    </div>
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div><div class="field-label">Fecha fin</div><input class="field-input" id="pm-end" type="date"></div>
+      <div><div class="field-label">Facilitador</div><input class="field-input" id="pm-facilitator"></div>
+    </div>
+    <div style="margin-bottom:10px"><div class="field-label">Objetivo</div><textarea class="field-input" id="pm-objective"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePulse()">Guardar</button>
+      <button class="btn btn-ghost" onclick="hidePulseModal()">Cancelar</button>
+      <span id="pmStatus" style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="actionModal">
+  <div class="modal-box">
+    <div class="modal-title">Accion</div>
+    <input type="hidden" id="am-edit-id">
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div><div class="field-label">Origen</div>
+        <select class="field-input" id="am-origen" onchange="toggleActionFields()">
+          <option>Entrevista</option><option>Encuesta</option>
+        </select>
+      </div>
+      <div><div class="field-label">Pulso</div><select class="field-input" id="am-pulse"><option value="">Sin pulso</option></select></div>
+    </div>
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div id="am-person-field"><div class="field-label">Persona</div><input class="field-input" id="am-person" placeholder="Nombre o codigo"></div>
+      <div id="am-arch-field" style="display:none"><div class="field-label">Arquetipo</div>
+        <select class="field-input" id="am-arch">
+          <option value="">Sin arquetipo</option>
+          <option value="aliado">Aliado Activo</option><option value="entusiasta">Entusiasta</option>
+          <option value="retador">Retador</option><option value="seguidorA">Seguidor Activo</option>
+          <option value="seguidor">Seguidor Pasivo</option><option value="desconectado">Desconectado</option>
+        </select>
+      </div>
+      <div><div class="field-label">Area</div><input class="field-input" id="am-area" placeholder="Area o equipo"></div>
+    </div>
+    <div style="margin-bottom:10px"><div class="field-label">Descripcion</div><textarea class="field-input" id="am-desc"></textarea></div>
+    <div class="fg fg3" style="margin-bottom:10px">
+      <div><div class="field-label">Prioridad</div>
+        <select class="field-input" id="am-priority"><option>URGENTE</option><option>PRIORITARIO</option><option>SEGUIMIENTO</option></select>
+      </div>
+      <div><div class="field-label">Responsable</div><input class="field-input" id="am-owner"></div>
+      <div><div class="field-label">Limite (dd/mm/aa)</div><input class="field-input" id="am-due" placeholder="31/12/26" maxlength="8"></div>
+    </div>
+    <div style="margin-bottom:10px"><div class="field-label">Notas</div><textarea class="field-input" id="am-notes"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveAction()">Guardar</button>
+      <button class="btn btn-ghost" onclick="hideActionModal()">Cancelar</button>
+      <span id="amStatus" style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="surveyModal">
+  <div class="modal-box">
+    <div class="modal-title">Guardar encuesta</div>
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div><div class="field-label">Nombre</div><input class="field-input" id="sm-name" placeholder="Encuesta Mayo 2026"></div>
+      <div><div class="field-label">Fecha</div><input class="field-input" id="sm-date" type="date"></div>
+    </div>
+    <div class="fg fg2" style="margin-bottom:10px">
+      <div><div class="field-label">Pulso asociado</div><select class="field-input" id="sm-pulse"><option value="">Sin pulso</option></select></div>
+      <div><div class="field-label">Facilitador</div><input class="field-input" id="sm-facilitator"></div>
+    </div>
+    <div id="sm-preview" style="background:var(--bg);padding:10px;border-radius:var(--r);font-size:.74rem;color:var(--ink-soft);margin-bottom:12px"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveSurvey()">Guardar en Sheet</button>
+      <button class="btn btn-ghost" onclick="hideSurveyModal()">Cancelar</button>
+      <span id="smStatus" style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title" id="editModalTitle">Editar</div>
+    <div id="editModalPriorityRow" style="display:none;margin-bottom:10px">
+      <div class="field-label">Prioridad</div>
+      <select class="field-input" id="editModalPriority"><option>URGENTE</option><option>PRIORITARIO</option><option>SEGUIMIENTO</option></select>
+    </div>
+    <textarea class="field-input" id="editModalText" style="min-height:80px;margin-bottom:12px"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="editModalSave">Guardar</button>
+      <button class="btn btn-ghost" onclick="hideEditModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyHIQ_C7-D8qVwBVfZ7Hgb0dkePcydstFZzxBRvfmnRfYmRg_IRFW_xr5NqnfVhunFW/exec';
+const ORG_TOTAL=176;
+
+const HEADERS_DATA=['id','name','date','role','channel','facilitator','pulse_id','context','obs','quotes','conclusions','notes',
+  'sc_conviccion','sc_energia','sc_confianza','sc_comprension','sc_capacidad','sc_soporte',
+  'ev_conviccion','ev_energia','ev_confianza','ev_comprension','ev_capacidad','ev_soporte',
+  'custom_tensions','custom_conclusions'];
+const HEADERS_ACTIONS=['id','origen','person','arch','area','pulse_id','desc','priority','owner','due','status','notes','created'];
+const HEADERS_PULSES=['id','name','start','end','facilitator','objective','conclusions'];
+const HEADERS_SURVEYS=['id','name','date','pulse_id','facilitator','n_total','n_started','n_complete','conclusions','topics','created'];
+const HEADERS_SURVEY_RESP=['id','survey_id','area','colectivo','sc_comprension','sc_conviccion','sc_energia','sc_confianza','sc_capacidad','sc_soporte','archetype','open_q1','open_q2','custom_tags'];
+const HEADERS_MODEL_CONFIG=['id','version','date','facilitator','w_low','w_high','a_low','a_high','split_seguidor','matrix_map','notes'];
+
+// GLOBAL MODEL CONFIG - loaded from Sheet, defaults to Option C
+let MODEL={
+  version:'v1',
+  date:'',
+  facilitator:'',
+  w_low:3.33, w_high:4.33,
+  a_low:3.33, a_high:4.33,
+  split_seguidor:3.83,
+  // matrix_map: keys are 'WL_AL', 'WL_AM', 'WL_AH', 'WM_AL', 'WM_AM', 'WM_AH', 'WH_AL', 'WH_AM', 'WH_AH'
+  matrix_map:{
+    WL_AL:'desconectado', WL_AM:'desconectado', WL_AH:'retador',
+    WM_AL:'seguidor',     WM_AM:'seguidor',     WM_AH:'retador',
+    WH_AL:'entusiasta',   WH_AM:'aliado',        WH_AH:'aliado',
+  },
+  notes:''
+};
+
+const DIMS_W=[
+  {key:'conviccion', label:'Conviccion',        sub:'Cree en la necesidad del cambio'},
+  {key:'energia',    label:'Energia / Agencia',  sub:'Voluntad activa de contribuir'},
+  {key:'confianza',  label:'Confianza liderazgo',sub:'Percibe compromiso directivo'},
+];
+const DIMS_A=[
+  {key:'comprension',label:'Comprension',        sub:'Entiende el que y el como'},
+  {key:'capacidad',  label:'Capacidad percibida', sub:'Se siente preparado/a'},
+  {key:'soporte',    label:'Red de soporte',      sub:'Tiene con quien apoyarse'},
+];
+const DIMS=[...DIMS_W,...DIMS_A];
+
+const ORG_QUESTIONS=[
+  {short:'Por que de NEA',          full:'Entiendo por que se impulsa NEA y su relevancia para mi area',          dim:'Comprension / Conviccion'},
+  {short:'Impacto en mi trabajo',   full:'Tengo idea de como NEA podria impactar en mi trabajo concreto',         dim:'Comprension'},
+  {short:'Actitud abierta',         full:'Tengo actitud abierta ante los cambios que NEA pueda introducir',       dim:'Energia'},
+  {short:'Tranquilidad vs angustia',full:'Me siento mas tranquilo que preocupado respecto a NEA',                dim:'Confianza liderazgo'},
+  {short:'Adquirir habilidades',    full:'Confio en que podre adquirir las habilidades necesarias',              dim:'Capacidad percibida'},
+  {short:'Adaptar forma de trabajar',full:'Me siento capaz de adaptar mi forma habitual de trabajar',            dim:'Capacidad percibida'},
+  {short:'Tiempo y apoyo',          full:'Creo que dispondre del tiempo y apoyo necesarios para adaptarme',      dim:'Red de soporte'},
+  {short:'Comunicacion clara',      full:'La comunicacion sobre NEA ha sido clara y suficiente',                  dim:'Confianza liderazgo'},
+];
+const PROJ_QUESTIONS=[
+  {short:'Valor para Aprovisionamiento',full:'El piloto aportara valor para Aprovisionamiento',                  dim:'Comprension'},
+  {short:'Beneficios en mi rol',    full:'Veo beneficios concretos a nivel de mi trabajo y rol',                  dim:'Conviccion'},
+  {short:'Contribuir activamente',  full:'Estoy dispuesto a contribuir activamente al piloto',                    dim:'Energia'},
+  {short:'Confianza vs estres',     full:'Predomina la confianza y la ilusion sobre el estres e incertidumbre',  dim:'Confianza liderazgo'},
+  {short:'Conocimiento para piloto',full:'Tengo el conocimiento y habilidades necesarios para el piloto',        dim:'Capacidad percibida'},
+  {short:'Seguridad para cambiar',  full:'Me siento seguro para cambiar el enfoque habitual y ajustar',          dim:'Capacidad / Conviccion'},
+  {short:'Tiempo disponible',       full:'Dispongo del tiempo necesario para dedicar al proyecto',                dim:'Red de soporte'},
+  {short:'Comunicacion consistente',full:'La comunicacion y acompanamiento del proyecto son consistentes',       dim:'Confianza liderazgo'},
+];
+
+const QUAL_CLUSTERS=[
+  {id:'modelo_org',   name:'Modelo organizativo',     color:'#E8F0FB',barColor:'#1A5FAB',
+   keywords:['organigrama','equipos','organizaci','modelo','estructura','rol','roles','equipo','reorgani','trabajo diario','dia a dia','organizar','quien','responsabilidad']},
+  {id:'empleo',       name:'Riesgo de empleo',         color:'#FFE8EA',barColor:'#C0001A',
+   keywords:['puesto','empleo','sobren','sustituir','amortiz','despido','reubica','perder','trabajo','personas','plantilla','reduccion']},
+  {id:'formacion',    name:'Formacion y capacitacion', color:'#E6F4EC',barColor:'#1A7F4B',
+   keywords:['formacion','formaci','aprender','aprendizaje','capacitar','competencias','habilidades','conocimiento','tiempo para','entrenamiento','cursos']},
+  {id:'inclusion',    name:'Inclusion y alcance',      color:'#FFF5E0',barColor:'#9B6000',
+   keywords:['franquici','campanas','plataforma','incluir','alcance','afecta','mi equipo','nuestro equipo','dentro de nea','parte del']},
+  {id:'incertidumbre',name:'Incertidumbre general',    color:'#F0EAF8',barColor:'#6B3FA0',
+   keywords:['incertidumbre','desconocimiento','claridad','cuando','futuro','pregunta','duda','no se','saber','conocer','informacion']},
+];
+
+const ARCHETYPES={
+  aliado:      {id:'aliado',      name:'Aliado Activo',   badgeClass:'b-aliado',      barColor:'#2BA86A',distColor:'#2BA86A',
+    desc:'Alta disposicion y capacidad. Motor natural del cambio.',
+    suggestions:['Apropiacion genuina: comprende, cree y tiene voluntad activa.','Multiplicador potencial de la narrativa del cambio entre iguales.','Riesgo: infra-utilizacion. Sin rol visible la energia se disipa.'],
+    actions:[{tag:'PRIORITARIO',urgency:'tag-bajo',text:'Activar como embajador: rol visible en comunicacion interna o sesiones de pares.'},{tag:'PRIORITARIO',urgency:'tag-bajo',text:'Involucrar en co-diseno de soluciones o como referente.'},{tag:'MANTENER',urgency:'tag-bajo',text:'Reconocimiento explicito y acceso anticipado a informacion clave.'}]},
+  entusiasta:  {id:'entusiasta',  name:'Entusiasta',      badgeClass:'b-entusiasta',  barColor:'#1A5FAB',distColor:'#1A5FAB',
+    desc:'Alta disposicion, capacidad aun en desarrollo. Riesgo de frustracion.',
+    suggestions:['Voluntad genuina pero sin herramientas suficientes para ejecutar.','El gap de capacidad genera frustracion si no se atiende a tiempo.','Capital de energia que hay que aprovechar antes de que se agote.'],
+    actions:[{tag:'URGENTE',urgency:'tag-urgente',text:'Plan de habilitacion: formacion tecnica y acompanamiento en el puesto.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Asignar mentor o aliado activo que acelere la curva de aprendizaje.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Hitos de progreso cortos para mantener la motivacion visible.'}]},
+  retador:     {id:'retador',     name:'Retador',         badgeClass:'b-retador',     barColor:'#6B3FA0',distColor:'#6B3FA0',
+    desc:'Alta capacidad con disposicion cuestionada. Influencia potencial alta en ambos sentidos.',
+    suggestions:['La capacidad existe pero la conviccion o la confianza no acompanan.','Perfil con potencial de influencia — positiva si se reconvierte, negativa si se ignora.','La causa puede ser informacional, relacional o historica.'],
+    actions:[{tag:'URGENTE',urgency:'tag-urgente',text:'Conversacion 1:1 para identificar la causa raiz de la baja disposicion.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Canalizar su perspectiva critica como input legitimo al proceso.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Gestionar siempre en privado. No confrontar en sesiones grupales.'}]},
+  seguidorA:   {id:'seguidorA',   name:'Seguidor Activo', badgeClass:'b-seguidor-a',  barColor:'#0B6E9E',distColor:'#0B6E9E',
+    desc:'Disposicion y capacidad medias con tendencia positiva. Perfil de activacion rapida.',
+    suggestions:['En zona de transicion hacia Aliado. La energia existe pero no se ha canalizado aun.','Responde bien a roles concretos y reconocimiento de su contribucion.','Es el arquetipo con mayor potencial de mejora a corto plazo con la intervencion correcta.'],
+    actions:[{tag:'PRIORITARIO',urgency:'tag-medio',text:'Asignar un rol especifico en el proceso de cambio para activar sentido de agencia.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Conectar con un aliado activo como referente y motor de arrastre.'},{tag:'COMPLEMENTARIO',urgency:'tag-bajo',text:'Reconocimiento visible de sus avances para consolidar la tendencia positiva.'}]},
+  seguidor:    {id:'seguidor',    name:'Seguidor Pasivo',  badgeClass:'b-seguidor',   barColor:'#D4A017',distColor:'#D4A017',
+    desc:'Disposicion y capacidad medias con tendencia neutra o negativa. Espera que otros lideren.',
+    suggestions:['Acepta el cambio pero no lo ha interiorizado como propio.','En momentos de friccion tiende a resistencia pasiva o amplificacion de dudas.','Palanca: asignar un rol concreto que genere sentido de agencia.'],
+    actions:[{tag:'PRIORITARIO',urgency:'tag-medio',text:'Asignar rol especifico y acotado para activar sentido de responsabilidad.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Conectar con un aliado activo para generar arrastre.'},{tag:'COMPLEMENTARIO',urgency:'tag-bajo',text:'Reforzar narrativa con ejemplos de impacto en su area.'}]},
+  desconectado:{id:'desconectado',name:'Desconectado',     badgeClass:'b-desconectado',barColor:'#999',  distColor:'#999',
+    desc:'Baja disposicion y capacidad insuficiente. Intervencion prioritaria.',
+    suggestions:['Sin imagen coherente del proyecto ni de su impacto personal.','Baja capacidad percibida genera ansiedad que evoluciona en resistencia activa.','Determinar si es caso individual o patron sistemico en un area.'],
+    actions:[{tag:'URGENTE',urgency:'tag-urgente',text:'Briefing individualizado: comprension basica del proyecto e impacto en su rol.'},{tag:'URGENTE',urgency:'tag-urgente',text:'Verificar barreras de acceso a informacion o dinamicas de exclusion.'},{tag:'PRIORITARIO',urgency:'tag-medio',text:'Plan de acompanamiento con hitos quincenales. Escalar a HRBP si perfil clave.'}]}
+};
+
+const TENSIONS_DEF=[
+  {name:'Frustracion temprana',       cond:iv=>sc(iv,'energia')>=4&&sc(iv,'capacidad')<=2,color:'#FFE8EA',msg:'Alta motivacion sin herramientas para ejecutar.'},
+  {name:'Rechazo cultural',           cond:iv=>sc(iv,'conviccion')<=2&&sc(iv,'comprension')>=4,color:'#FFF5E0',msg:'Entiende el cambio pero no lo acepta.'},
+  {name:'Dependencia fragil',         cond:iv=>sc(iv,'confianza')<=2&&sc(iv,'energia')>=4,color:'#FFE8EA',msg:'Empuje personal sin respaldo institucional.'},
+  {name:'Desconexion silenciosa',     cond:iv=>sc(iv,'soporte')<=2&&sc(iv,'energia')<=2,color:'#EEE',msg:'Aislamiento que evoluciona en desvinculacion.'},
+  {name:'Paralisis por incertidumbre',cond:iv=>sc(iv,'comprension')<=2&&sc(iv,'capacidad')<=2,color:'#EEE',msg:'No sabe que ni como. Bloqueo total.'},
+  {name:'Aliado en riesgo',           cond:iv=>sc(iv,'conviccion')>=4&&sc(iv,'confianza')<=2,color:'#FFF5E0',msg:'Cree en el cambio pero no en quien lo lidera.'},
+];
+
+const WA_NARRATIVES=[
+  {wMin:3,aMin:3,tag:'Alta Willingness / Alta Ability',  text:'Motor activo: comprende, cree y puede ejecutar. Perfil de maximo valor para el proyecto.'},
+  {wMin:3,aMin:0,tag:'Alta Willingness / Baja Ability',  text:'Direccion clara, traccion fragil. El riesgo es la frustracion operativa: quiere pero no puede aun.'},
+  {wMin:0,aMin:3,tag:'Baja Willingness / Alta Ability',  text:'Capacidad sin conviccion. Sabe como pero no por que. La tecnica no compensa la falta de proposito.'},
+  {wMin:0,aMin:0,tag:'Baja Willingness / Baja Ability',  text:'Punto de partida. Intervencion prioritaria en ambos ejes antes de avanzar.'},
+];
+
+// STATE
+let interviews=[],actions=[],pulses=[],surveys=[],surveyResponses=[];
+let anonMode=false,selectedPerson=null,selectedSurveyId=null,pendingSurveyData=null;
+let charts={};
+
+// STATUS
+function setStatus(s,t){document.getElementById('statusDot').className='sdot '+s;document.getElementById('statusText').textContent=t;}
+
+// API
+async function scriptGet(params){
+  const qs=new URLSearchParams(params).toString();
+  const r=await fetch(`${SCRIPT_URL}?${qs}`);
+  if(!r.ok)throw new Error(await r.text());
+  const j=await r.json();
+  if(!j.ok)throw new Error(j.error||'Script error');
+  return j;
+}
+
+async function loadAll(){
+  setStatus('loading','Cargando...');
+  try{
+    const[d,a,p,sv,sr]=await Promise.all([
+      scriptGet({action:'read',sheet:'Data'}),
+      scriptGet({action:'read',sheet:'Actions'}),
+      scriptGet({action:'read',sheet:'Pulses'}),
+      scriptGet({action:'read',sheet:'Surveys'}),
+      scriptGet({action:'read',sheet:'SurveyResponses'}),
+    ]);
+    interviews=parseSheet(d.data);
+    actions=parseSheet(a.data);
+    pulses=parseSheet(p.data);
+    surveys=parseSheet(sv.data);
+    surveyResponses=parseSheet(sr.data);
+    setStatus('ok',`Conectado · ${interviews.length} entrevistas · ${surveys.length} encuestas`);
+    updateModelSummary();
+    populateFilters();
+    renderSurveyList();
+  }catch(e){setStatus('err','Error al cargar');console.error(e);}
+}
+
+async function initSheets(){
+  try{
+    await Promise.all([
+      scriptGet({action:'init',sheet:'Data',headers:HEADERS_DATA.join('||')}),
+      scriptGet({action:'init',sheet:'Actions',headers:HEADERS_ACTIONS.join('||')}),
+      scriptGet({action:'init',sheet:'Pulses',headers:HEADERS_PULSES.join('||')}),
+      scriptGet({action:'init',sheet:'Surveys',headers:HEADERS_SURVEYS.join('||')}),
+      scriptGet({action:'init',sheet:'SurveyResponses',headers:HEADERS_SURVEY_RESP.join('||')}),
+      scriptGet({action:'init',sheet:'ModelConfig',headers:HEADERS_MODEL_CONFIG.join('||')}),
+    ]);
+    await loadModelConfig();
+  }catch(e){console.error(e);}
+}
+
+async function loadModelConfig(){
+  try{
+    const r=await scriptGet({action:'read',sheet:'ModelConfig'});
+    const rows=parseSheet(r.data);
+    if(!rows.length)return; // use defaults
+    // Use latest version (last row)
+    const latest=rows[rows.length-1];
+    MODEL.version=latest.version||'v1';
+    MODEL.date=latest.date||'';
+    MODEL.facilitator=latest.facilitator||'';
+    MODEL.w_low=parseFloat(latest.w_low)||3.33;
+    MODEL.w_high=parseFloat(latest.w_high)||4.33;
+    MODEL.a_low=parseFloat(latest.a_low)||3.33;
+    MODEL.a_high=parseFloat(latest.a_high)||4.33;
+    MODEL.split_seguidor=parseFloat(latest.split_seguidor)||3.83;
+    MODEL.notes=latest.notes||'';
+    if(latest.matrix_map){try{MODEL.matrix_map=JSON.parse(latest.matrix_map);}catch{}}
+    console.log('Model loaded: '+MODEL.version+' ('+MODEL.date+')');
+  }catch(e){console.error('Model config load error:',e);}
+}
+
+function parseSheet(data){
+  if(!data||data.length<1)return[];
+  const headers=data[0].map(String);
+  return data.slice(1).map((row,ri)=>{
+    const obj={_row:ri+2};
+    headers.forEach((h,i)=>obj[h]=String(row[i]??''));
+    return obj;
+  }).filter(r=>r.id||r.name);
+}
+
+// HELPERS
+function sc(iv,key){return parseFloat(iv['sc_'+key])||0;}
+function wScore(iv){return(sc(iv,'conviccion')+sc(iv,'energia')+sc(iv,'confianza'))/3;}
+function aScore(iv){return(sc(iv,'comprension')+sc(iv,'capacidad')+sc(iv,'soporte'))/3;}
+function totalScore(iv){return(wScore(iv)+aScore(iv))/2;}
+// New thresholds: Low<3.0 / Mid 3.0-4.0 / High>4.0
+function wLevel(iv){const w=wScore(iv);return w>MODEL.w_high?'H':w>=MODEL.w_low?'M':'L';}
+function aLevel(iv){const a=aScore(iv);return a>MODEL.a_high?'H':a>=MODEL.a_low?'M':'L';}
+function classifyArchetype(iv){
+  const w=wLevel(iv),a=aLevel(iv),t=totalScore(iv);
+  const cell='W'+w+'_A'+a;
+  let archId=MODEL.matrix_map[cell]||'seguidor';
+  // Apply Seguidor split
+  if(archId==='seguidor'){archId=t>MODEL.split_seguidor?'seguidorA':'seguidor';}
+  return ARCHETYPES[archId]||ARCHETYPES.seguidor;
+}
+function getWANarrative(iv){
+  const w=wScore(iv),a=aScore(iv);
+  if(w>=3&&a>=3)return WA_NARRATIVES[0];
+  if(w>=3&&a<3)return WA_NARRATIVES[1];
+  if(w<3&&a>=3)return WA_NARRATIVES[2];
+  return WA_NARRATIVES[3];
+}
+function getDynamicNarrative(iv,arch){
+  const w=wScore(iv).toFixed(1),a=aScore(iv).toFixed(1),t=totalScore(iv).toFixed(1);
+  const wl=wLevel(iv),al=aLevel(iv);
+  const wDim=DIMS_W.reduce((best,d)=>{const v=sc(iv,d.key);return v<sc(iv,best.key)?d:best},DIMS_W[0]);
+  const aDim=DIMS_A.reduce((best,d)=>{const v=sc(iv,d.key);return v<sc(iv,best.key)?d:best},DIMS_A[0]);
+  const weakest=sc(iv,wDim.key)<sc(iv,aDim.key)?wDim:aDim;
+  if(arch.id==='aliado'){return{tag:'Aliado Activo · W'+w+' / A'+a,text:'Perfil con alta disposicion y capacidad suficiente para ejecutar. Score global '+t+'/5.0. La dimension mas fuerte es su conviccion y energia — puede actuar como referente para el equipo. Prioridad: activar su rol antes de que el ciclo de cambio avance sin aprovechar este capital.'};};
+  if(arch.id==='entusiasta'){return{tag:'Entusiasta · W'+w+' / A'+a,text:'Quiere pero aun no puede del todo. Score global '+t+'/5.0. Alta disposicion al cambio (W '+w+') con capacidad percibida en desarrollo (A '+a+'). La brecha principal esta en '+aDim.label.toLowerCase()+'. Sin intervencion de habilitacion, el riesgo es la frustracion cuando la voluntad choca con la realidad operativa.'};};
+  if(arch.id==='retador'){return{tag:'Retador · W'+w+' / A'+a,text:'Capacidad presente pero disposicion cuestionada. Score global '+t+'/5.0. El perfil tiene recursos tecnicos o de comprension (A '+a+') pero la conviccion o la confianza en el liderazgo limitan su contribucion activa (W '+w+'). La causa raiz determina la intervencion: si es informacional, se resuelve; si es relacional, requiere trabajo mas profundo.'};};
+  if(arch.id==='seguidorA'){return{tag:'Seguidor Activo · W'+w+' / A'+a,text:'Perfil en transicion positiva. Score global '+t+'/5.0. Disposicion y capacidad en zona media-alta con tendencia favorable. La dimension limitante es '+weakest.label.toLowerCase()+' ('+sc(iv,weakest.key)+'/5). Con un rol concreto y el soporte adecuado, este perfil puede evolucionar a Aliado en el proximo ciclo de cambio.'};};
+  if(arch.id==='seguidor'){return{tag:'Seguidor Pasivo · W'+w+' / A'+a,text:'Perfil en zona intermedia. Score global '+t+'/5.0. Ni bloqueado ni activo. Acepta el cambio pero no lo ha interiorizado como propio. El factor limitante principal es '+weakest.label.toLowerCase()+' ('+sc(iv,weakest.key)+'/5). En momentos de friccion este perfil tiende a la resistencia pasiva. Necesita un rol concreto para activar su agencia.'};};
+  if(arch.id==='desconectado'){return{tag:'Desconectado · W'+w+' / A'+a,text:'Baja disposicion y capacidad insuficiente. Score global '+t+'/5.0. El perfil no ha construido aun una imagen coherente del proyecto ni de su impacto personal. La dimension mas debil es '+weakest.label.toLowerCase()+' ('+sc(iv,weakest.key)+'/5). No es resistencia activa — es ausencia de informacion o vinculo con el cambio. Intervencion prioritaria antes de la siguiente fase.'};};
+  return getWANarrative(iv);
+}
+function getGroupNarrative(avgW,avgA,avgTotal,counts,allPoints){
+  const dominant=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  const domArch=dominant?ARCHETYPES[dominant[0]]:null;
+  const domPct=dominant&&allPoints.length?Math.round(dominant[1]/allPoints.length*100):0;
+  const wl=avgW>4?'alta':avgW>=3?'media':'baja';
+  const al=avgA>4?'alta':avgA>=3?'media':'baja';
+  let tag='',text='';
+  if(avgTotal>=4){tag='Grupo en zona de avance';text=`Score global ${avgTotal.toFixed(1)}/5.0. El colectivo muestra disposicion (W ${avgW.toFixed(1)}) y capacidad (A ${avgA.toFixed(1)}) suficientes para absorber el cambio. El perfil dominante es ${domArch?domArch.name:'Aliado Activo'} (${domPct}% del grupo). La transformacion tiene base para avanzar.`;}
+  else if(avgTotal>=3.5){tag='Grupo con base solida, margen de mejora';text=`Score global ${avgTotal.toFixed(1)}/5.0. Willingness ${wl} (${avgW.toFixed(1)}) y Ability ${al} (${avgA.toFixed(1)}). El perfil dominante es ${domArch?domArch.name:'Seguidor Pasivo'} (${domPct}%). El grupo acepta el cambio pero la capacidad o la conviccion no estan aun al nivel necesario para las fases de implementacion.`;}
+  else if(avgTotal>=3){tag='Grupo en zona de riesgo moderado';text=`Score global ${avgTotal.toFixed(1)}/5.0. Willingness ${wl} (${avgW.toFixed(1)}), Ability ${al} (${avgA.toFixed(1)}). ${domArch?domArch.name+' representa el '+domPct+'% del grupo':'Seguidor Pasivo es el perfil dominante'}. Sin intervenciones activas en las proximas semanas, el avance de las fases generara friccion visible.`;}
+  else{tag='Grupo con brechas criticas';text=`Score global ${avgTotal.toFixed(1)}/5.0. El colectivo no esta preparado para absorber el cambio en su estado actual. Willingness ${wl} (${avgW.toFixed(1)}), Ability ${al} (${avgA.toFixed(1)}). El ${domPct}% del grupo muestra perfil ${domArch?domArch.name:'Desconectado'}. Se requiere intervencion activa antes de avanzar a la siguiente fase.`;}
+  return{tag,text};
+}
+function getBarColor(v){return v>4?'#2BA86A':v>=3?'#D4A017':'#E05C6E';}
+function getHeatColor(v){
+  if(v>4)return{bg:'#E6F4EC',fg:'#1A7F4B'};
+  if(v>=3.5)return{bg:'#FFF5E0',fg:'#7A5000'};
+  if(v>=3)return{bg:'#FFF0D5',fg:'#9B6000'};
+  if(v>=2)return{bg:'#FFE8D5',fg:'#A04000'};
+  return{bg:'#FFE8EA',fg:'#C0001A'};
+}
+function displayName(n){return anonMode?'[Anonimo]':n;}
+function pulseName(id){const p=pulses.find(p=>p.id===id);return p?p.name:'';}
+function uniqueNames(){return[...new Set(interviews.map(iv=>iv.name).filter(Boolean))].sort();}
+function uniqueAreas(){return[...new Set([...interviews.map(iv=>iv.role),...actions.map(a=>a.area),...surveyResponses.map(r=>r.area)].filter(Boolean))].sort();}
+function priorityClass(p){return p==='URGENTE'?'tag-urgente':p==='PRIORITARIO'?'tag-medio':'tag-seguimiento';}
+function parseJSON(str,def){try{return JSON.parse(str)||def;}catch{return def;}}
+function fmtDate(d){if(!d||d==='-')return'-';try{const dt=new Date(d);if(isNaN(dt))return d;return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch{return d;}}
+function serializeJSON(arr){return JSON.stringify(arr);}
+function destroyChart(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+
+// QUALITATIVE
+function clusterResponses(responses){
+  const SKIP_WORDS=new Set(['ninguna','ninguno','nada','no','none','n/a','na','-','ninguno.','ninguna.','de momento ninguna.','de momento ninguna','no, ninguna','no hay nada']);
+  const allText=responses.map(r=>[r.open_q1,r.open_q2].filter(Boolean)).flat().filter(t=>{const clean=t.trim().toLowerCase().replace(/[.,!?]+$/,'');return t.trim().length>5&&!SKIP_WORDS.has(clean)&&!clean.match(/^(ninguna?|nada|no|none)\s*\.?$/);});
+  const clusters=QUAL_CLUSTERS.map(cl=>{
+    const matching=allText.filter(text=>cl.keywords.some(kw=>text.toLowerCase().includes(kw)));
+    return{...cl,count:matching.length,quotes:[...new Set(matching)].slice(0,5),pct:allText.length?Math.round(matching.length/allText.length*100):0};
+  }).filter(c=>c.count>0).sort((a,b)=>b.count-a.count);
+  const clustered=new Set(clusters.flatMap(c=>c.quotes));
+  return{clusters,unclustered:allText.filter(t=>!clustered.has(t)).slice(0,3),totalOpen:allText.length};
+}
+
+// POPULATE FILTERS
+function populateFilters(){
+  const names=uniqueNames();
+  const channels=[...new Set(interviews.map(iv=>iv.channel).filter(Boolean))].sort();
+  const pulseOpts=pulses.map(p=>({v:p.id,l:p.name}));
+  const surveyOpts=surveys.map(s=>({v:s.id,l:s.name}));
+  const areas=uniqueAreas();
+  setSelect('fl-person',names,'Todas las personas');
+  setSelect('fl-channel',channels,'Todos los canales');
+  setSelect('ac-area',areas,'Todas las areas');
+  setSelectObj('fl-pulse-list',pulseOpts,'Todos los pulsos');
+  setSelectObj('gl-pulse',pulseOpts,'Todos los periodos');
+  setSelectObj('ac-pulse',pulseOpts,'Todos los pulsos');
+  setSelectObj('f-pulse',pulseOpts,'Sin pulso');
+  setSelectObj('am-pulse',pulseOpts,'Sin pulso');
+  setSelectObj('sm-pulse',pulseOpts,'Sin pulso');
+  setSelectObj('sa-survey',surveyOpts,'Selecciona una encuesta');
+  // Survey areas
+  const surveyAreas=[...new Set(surveyResponses.map(r=>r.area).filter(Boolean))].sort();
+  setSelect('sa-area',surveyAreas,'Todas las areas');
+  renderList();updatePersonChips();renderGlobal();renderActions();
+}
+function setSelect(id,vals,ph){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML=`<option value="">${ph}</option>`+vals.map(v=>`<option value="${v}">${v}</option>`).join('');el.value=cur;}
+function setSelectObj(id,opts,ph){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML=`<option value="">${ph}</option>`+opts.map(o=>`<option value="${o.v}">${o.l}</option>`).join('');el.value=cur;}
+
+// TAB SWITCHING
+function switchTab(tab){
+  const tabs=['list','individual','surveys','survey-analysis','global','actions','methodology'];
+  tabs.forEach((t,i)=>{
+    document.querySelectorAll('.tab')[i]?.classList.toggle('active',t===tab);
+    document.getElementById('view-'+t)?.classList.toggle('active',t===tab);
+  });
+  if(tab==='individual'){updatePersonChips();renderIndividual();}
+  if(tab==='survey-analysis')renderSurveyAnalysis();
+  if(tab==='global')renderGlobal();
+  if(tab==='actions')renderActions();
+}
+
+// NEW INTERVIEW PANEL
+function openNewInterview(){
+  clearForm();
+  document.getElementById('newInterviewPanel').style.display='block';
+  document.getElementById('newInterviewPanel').scrollIntoView({behavior:'smooth'});
+}
+function closeNewInterview(){
+  document.getElementById('newInterviewPanel').style.display='none';
+  clearForm();
+}
+
+// 01 LIST
+function renderList(){
+  const fp=document.getElementById('fl-person')?.value;
+  const fa=document.getElementById('fl-arch')?.value;
+  const fc=document.getElementById('fl-channel')?.value;
+  const fp2=document.getElementById('fl-pulse-list')?.value;
+  let filtered=interviews.filter(iv=>(!fp||iv.name===fp)&&(!fa||classifyArchetype(iv).id===fa)&&(!fc||iv.channel===fc)&&(!fp2||iv.pulse_id===fp2)).sort((a,b)=>b.date.localeCompare(a.date));
+  const c=document.getElementById('listContainer');
+  if(!filtered.length){c.innerHTML='<div class="empty-state"><h3>Sin entrevistas</h3><p>Pulsa "+ Nueva entrevista" para empezar.</p></div>';return;}
+  c.innerHTML=filtered.map(iv=>{
+    const arch=classifyArchetype(iv);
+    return`<div class="iv-row" onclick="openIv('${iv.id}')">
+      <div class="iv-name">${displayName(iv.name)}</div>
+      <div class="iv-meta">${fmtDate(iv.date)}</div>
+      <span class="badge ${arch.badgeClass}">${arch.name}</span>
+      <div class="iv-meta">W:${wScore(iv).toFixed(1)} A:${aScore(iv).toFixed(1)}</div>
+      <div class="iv-meta">${iv.channel||'-'}</div>
+      <div class="iv-notes">${pulseName(iv.pulse_id)?'['+pulseName(iv.pulse_id)+'] ':''} ${iv.notes||'-'}</div>
+      <button class="iv-del" onclick="event.stopPropagation();editInterview('${iv.id}')">Ed</button>
+      <button class="iv-del" onclick="event.stopPropagation();deleteRow('Data','${iv.id}',${iv._row})">x</button>
+    </div>`;
+  }).join('');
+}
+function openIv(id){const iv=interviews.find(i=>i.id===id);if(!iv)return;selectedPerson=iv.name;switchTab('individual');}
+
+// 02 FORM
+function buildDimInputs(){
+  const sections=[{label:'Willingness',color:'var(--sg)',dims:DIMS_W},{label:'Ability',color:'var(--blue)',dims:DIMS_A}];
+  document.getElementById('dimInputs').innerHTML=sections.map(sec=>`
+    <div style="margin-bottom:12px">
+      <div style="font-size:.6rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px;font-weight:500">${sec.label}</div>
+      ${sec.dims.map(d=>`
+        <div class="dim-block">
+          <div class="dim-row">
+            <div class="dim-label">${d.label}<br><span class="dim-sub">${d.sub}</span></div>
+            <input type="range" min="1" max="5" step="1" value="3" id="sc_${d.key}" oninput="document.getElementById('rv_${d.key}').textContent=this.value">
+            <div class="range-val" id="rv_${d.key}">3</div>
+          </div>
+          <textarea class="evidence-input" id="ev_${d.key}" rows="1" placeholder="Evidencia o racional..."></textarea>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function clearForm(){
+  document.getElementById('f-edit-id').value='';
+  ['name','role','facilitator','context','obs','quotes','conclusions','notes'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value='';});
+  const fd=document.getElementById('f-date');if(fd)fd.value=new Date().toISOString().split('T')[0];
+  const fc=document.getElementById('f-channel');if(fc)fc.value='Cafe de equipo';
+  const fp=document.getElementById('f-pulse');if(fp)fp.value='';
+  DIMS.forEach(d=>{
+    const scEl=document.getElementById('sc_'+d.key);if(scEl){scEl.value=3;document.getElementById('rv_'+d.key).textContent=3;}
+    const evEl=document.getElementById('ev_'+d.key);if(evEl)evEl.value='';
+  });
+  const ss=document.getElementById('saveStatus');if(ss)ss.textContent='';
+  const sb=document.getElementById('saveBtn');if(sb)sb.textContent='Guardar entrevista';
+}
+
+function editInterview(id){
+  const iv=interviews.find(i=>i.id===id);if(!iv)return;
+  // Open panel first (without clearForm), then populate
+  document.getElementById('newInterviewPanel').style.display='block';
+  document.getElementById('f-edit-id').value=id;
+  ['name','date','role','facilitator','context','obs','quotes','conclusions','notes'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=iv[f]||'';});
+  const fc=document.getElementById('f-channel');if(fc)fc.value=iv.channel||'Cafe de equipo';
+  const fp=document.getElementById('f-pulse');if(fp)fp.value=iv.pulse_id||'';
+  DIMS.forEach(d=>{
+    const scEl=document.getElementById('sc_'+d.key);if(scEl){scEl.value=sc(iv,d.key)||3;document.getElementById('rv_'+d.key).textContent=sc(iv,d.key)||3;}
+    const evEl=document.getElementById('ev_'+d.key);if(evEl)evEl.value=iv['ev_'+d.key]||'';
+  });
+  const sb=document.getElementById('saveBtn');if(sb)sb.textContent='Actualizar entrevista';
+  document.getElementById('saveStatus').textContent='';
+  document.getElementById('newInterviewPanel').scrollIntoView({behavior:'smooth'});
+}
+
+async function saveInterview(){
+  const name=document.getElementById('f-name').value.trim();
+  const date=document.getElementById('f-date').value;
+  if(!name||!date){document.getElementById('saveStatus').textContent='! Nombre y fecha obligatorios';return;}
+  document.getElementById('saveBtn').disabled=true;
+  document.getElementById('saveStatus').textContent='Guardando...';
+  const editId=document.getElementById('f-edit-id').value;
+  const id=editId||Date.now().toString(36);
+  const row=[id,name,date,
+    document.getElementById('f-role').value.trim(),document.getElementById('f-channel').value,
+    document.getElementById('f-facilitator').value.trim(),document.getElementById('f-pulse').value,
+    document.getElementById('f-context').value.trim(),document.getElementById('f-obs').value.trim(),
+    document.getElementById('f-quotes').value.trim(),document.getElementById('f-conclusions').value.trim(),
+    document.getElementById('f-notes').value.trim(),
+    ...DIMS.map(d=>document.getElementById('sc_'+d.key).value),
+    ...DIMS.map(d=>document.getElementById('ev_'+d.key).value.trim()),
+    '','',
+  ];
+  try{
+    if(editId){
+      const ex=interviews.find(i=>i.id===editId);
+      if(ex){row[row.length-2]=ex.custom_tensions||'';row[row.length-1]=ex.custom_conclusions||'';await scriptGet({action:'delete',sheet:'Data',rowIndex:ex._row});}
+    }
+    await scriptGet({action:'append',sheet:'Data',row:row.join('||')});
+    document.getElementById('saveStatus').textContent='OK Guardado';
+    setTimeout(()=>{closeNewInterview();},700);
+    await loadAll();
+  }catch(e){setStatus('err','Error al guardar');document.getElementById('saveStatus').textContent='Error';console.error(e);}
+  document.getElementById('saveBtn').disabled=false;
+}
+
+// 02 INDIVIDUAL
+function toggleAnon(){anonMode=!anonMode;document.getElementById('anonBox').classList.toggle('on',anonMode);updatePersonChips();renderList();if(selectedPerson)renderIndividual();}
+
+function updatePersonChips(){
+  const c=document.getElementById('personChips');c.innerHTML='';
+  uniqueNames().forEach(n=>{
+    const ch=document.createElement('div');ch.className='chip'+(n===selectedPerson?' active':'');
+    ch.textContent=anonMode?'[Anon]':n;
+    ch.onclick=()=>{selectedPerson=n;updatePersonChips();renderIndividual();};
+    c.appendChild(ch);
+  });
+}
+
+function renderIndividual(){
+  updatePersonChips();
+  const content=document.getElementById('individualContent');
+  if(!selectedPerson){content.innerHTML='<div class="empty-state"><h3>Selecciona una persona</h3></div>';return;}
+  const personIvs=interviews.filter(iv=>iv.name===selectedPerson).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!personIvs.length){content.innerHTML='<div class="empty-state"><h3>Sin entrevistas registradas</h3></div>';return;}
+  const latest=personIvs[personIvs.length-1];
+  const arch=classifyArchetype(latest);
+  const narrative=getDynamicNarrative(latest,arch);
+  const w=wScore(latest),a=aScore(latest),total=totalScore(latest);
+  const customTensions=parseJSON(latest.custom_tensions||'',null);
+  const autoTensions=TENSIONS_DEF.filter(t=>t.cond(latest));
+  const tensionsList=customTensions!==null?customTensions:autoTensions.map(t=>({text:t.name+': '+t.msg,color:t.color}));
+  const customConclusions=parseJSON(latest.custom_conclusions||'',null);
+  const conclusionsList=customConclusions!==null?customConclusions:arch.suggestions.map(s=>({text:s,auto:true}));
+  const quotes=(latest.quotes||'').split('|').map(q=>q.trim()).filter(Boolean);
+  const personActions=actions.filter(ac=>ac.person===selectedPerson||ac.person===latest.name);
+
+  const barsHTML=DIMS.map(d=>{
+    const v=sc(latest,d.key);const ev=latest['ev_'+d.key];
+    const axColor='var(--ink-soft)';
+    return`<div style="margin-bottom:5px">
+      <div class="dim-bar-row"><div class="dim-bar-label" style="color:${axColor}">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/5)*100}%;background:${getBarColor(v)}"></div></div>
+      <div class="bar-val">${v}/5</div></div>
+      ${ev?`<div class="evidence-show">"${ev}"</div>`:''}</div>`;
+  }).join('');
+
+  const tensionsHTML=tensionsList.length
+    ?tensionsList.map((t,i)=>`<div class="tension-item" style="background:${t.color||'#FFF5E0'}"><div style="flex:1"><div class="tension-name">${t.text}</div></div><div style="display:flex;gap:4px"><button class="btn-icon" onclick="editTension(${i},'${latest.id}',${latest._row})">Ed</button><button class="btn-icon" onclick="deleteTension(${i},'${latest.id}',${latest._row})">x</button></div></div>`).join('')
+    :'<div style="font-size:.7rem;color:var(--muted);padding:6px 0">Sin tensiones detectadas.</div>';
+
+  const conclusionsHTML=conclusionsList.map((c,i)=>`<div class="edit-item">
+    ${c.auto?`<span style="font-size:.54rem;font-family:'IBM Plex Mono',monospace;padding:2px 5px;background:var(--bg-mid);color:var(--muted);border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0">AUTO</span>`:''}
+    <div class="edit-item-body">${c.text}</div>
+    <div style="display:flex;gap:4px"><button class="btn-icon" onclick="editConclusion(${i},'${latest.id}',${latest._row})">Ed</button><button class="btn-icon" onclick="deleteConclusion(${i},'${latest.id}',${latest._row})">x</button></div>
+  </div>`).join('');
+
+  const actionsHTML=personActions.length
+    ?personActions.sort((a,b)=>{const po={URGENTE:0,PRIORITARIO:1,SEGUIMIENTO:2};return(po[a.priority]??3)-(po[b.priority]??3);}).map(ac=>`
+        <div class="edit-item">
+          <span class="edit-item-tag ${priorityClass(ac.priority)}">${ac.priority}</span>
+          <div class="edit-item-body"><div>${ac.desc}</div><div style="font-size:.62rem;color:var(--muted);margin-top:2px">${ac.owner?'Resp: '+ac.owner+' · ':''}${ac.due?'Limite: '+ac.due+' · ':''}<span class="badge b-status-p">${ac.status||'Pendiente'}</span></div></div>
+          <div style="display:flex;gap:4px"><button class="btn-icon" onclick="showActionModal('Entrevista','${selectedPerson}','','','${ac.id}')">Ed</button><button class="btn-icon" onclick="deleteRow('Actions','${ac.id}',${ac._row})">x</button></div>
+        </div>`).join('')
+    :'<div style="font-size:.7rem;color:var(--muted);padding:6px 0">Sin acciones registradas.</div>';
+
+  content.innerHTML=`
+    <div class="ind-layout">
+      <div class="left-col">
+        <div class="card">
+          <div style="font-size:.95rem;font-weight:600;margin-bottom:2px">${anonMode?'[Anonimo]':latest.name}</div>
+          <div style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace">${latest.date} · ${latest.channel||'-'}</div>
+          ${latest.role&&!anonMode?`<div style="font-size:.66rem;color:var(--ink-soft);margin-top:2px">${latest.role}</div>`:''}
+          <div style="margin-top:10px;margin-bottom:4px">
+            <div class="score-label">Score total</div>
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <span class="score-big" style="color:${getBarColor(total)}">${total.toFixed(1)}</span>
+              <span class="score-denom">/5.0</span>
+              <span class="badge ${arch.badgeClass}" style="margin-left:4px">${arch.name}</span>
+            </div>
+          </div>
+          <canvas id="indRadar" style="margin:8px 0;width:100%;max-height:260px"></canvas>
+          <div class="wa-grid">
+            <div class="wa-cell" style="background:${w>=3?'var(--sg-bg)':'var(--sr-bg)'}">
+              <div class="wa-axis" style="color:${w>=3?'var(--sg)':'var(--sr)'}">Willingness</div>
+              <div class="wa-score-n" style="color:${w>=3?'var(--sg)':'var(--sr)'}">${w.toFixed(1)}</div>
+              <div class="wa-sub">Conv · Energ · Conf</div>
+            </div>
+            <div class="wa-cell" style="background:${a>=3?'var(--sg-bg)':'var(--sr-bg)'}">
+              <div class="wa-axis" style="color:${a>=3?'var(--sg)':'var(--sr)'}">Ability</div>
+              <div class="wa-score-n" style="color:${a>=3?'var(--sg)':'var(--sr)'}">${a.toFixed(1)}</div>
+              <div class="wa-sub">Comp · Cap · Sop</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Score + evidencia</div>
+          ${barsHTML}
+        </div>
+        ${personIvs.length>1?`<div class="card"><div class="card-title">Historial</div>${personIvs.map(iv=>{const a2=classifyArchetype(iv);return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);min-width:86px">${iv.date}</span><span class="badge ${a2.badgeClass}">${a2.name}</span><button class="btn-ghost btn-sm" style="margin-left:auto;font-size:.56rem" onclick="editInterview('${iv.id}')">Editar</button></div>`;}).join('')}</div>`:''}
+      </div>
+      <div class="right-col">
+        <div class="flow-section">
+          <div class="flow-header flow-result"><div class="flow-num">1</div><div class="flow-label">Resultado</div></div>
+          <div class="narrative-block"><div class="narrative-tag">${narrative.tag}</div><div class="narrative-text">"${narrative.text}"</div></div>
+        </div>
+        <div class="flow-section">
+          <div class="flow-header flow-input"><div class="flow-num">2</div><div class="flow-label">Input y analisis</div></div>
+          ${quotes.length?`<div class="card"><div class="card-title">Quotes / titulares</div>${quotes.map(q=>`<div class="quote-block">${q}</div>`).join('')}</div>`:''}
+          ${(latest.context||latest.obs)?`<div class="card"><div class="card-title">Contexto</div>${latest.context?`<div style="margin-bottom:8px"><div class="field-label">Objetivo</div><div style="font-size:.74rem;color:var(--ink-soft);line-height:1.5">${latest.context}</div></div>`:''}${latest.obs?`<div><div class="field-label">Observaciones</div><div style="font-size:.74rem;color:var(--ink-soft);line-height:1.5">${latest.obs}</div></div>`:''}</div>`:''}
+        </div>
+        <div class="flow-section">
+          <div class="flow-header flow-concl"><div class="flow-num">3</div><div class="flow-label">Conclusiones</div></div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div class="card-title" style="margin-bottom:0">Senales de tension</div>
+              <div class="btn-row">
+                <button class="btn-ghost btn-sm" onclick="addTension('${latest.id}',${latest._row})">+ Anadir</button>
+                <button class="btn-primary btn-sm" id="saveTensionsBtn" style="display:none" onclick="saveTensions('${latest.id}',${latest._row})">Guardar</button>
+              </div>
+            </div>
+            <div id="tensionsList">${tensionsHTML}</div>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div class="card-title" style="margin-bottom:0">Conclusiones del perfil</div>
+              <div class="btn-row">
+                <button class="btn-ghost btn-sm" onclick="addConclusion('${latest.id}',${latest._row})">+ Anadir</button>
+                <button class="btn-primary btn-sm" id="saveConclusionsBtn" style="display:none" onclick="saveConclusions('${latest.id}',${latest._row})">Guardar</button>
+              </div>
+            </div>
+            <div id="conclusionsList">${conclusionsHTML}</div>
+          </div>
+        </div>
+        <div class="flow-section">
+          <div class="flow-header flow-action"><div class="flow-num">4</div><div class="flow-label">Acciones</div></div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div class="card-title" style="margin-bottom:0">Acciones vinculadas</div>
+              <button class="btn-ghost btn-sm" onclick="showActionModal('Entrevista','${selectedPerson}')">+ Nueva</button>
+            </div>
+            ${actionsHTML}
+          </div>
+        </div>
+        ${personIvs.length>1?`<div class="card" style="margin-top:4px"><div class="card-title">Evolucion temporal</div><canvas id="timelineChart" height="160"></canvas></div>`:''}
+      </div>
+    </div>`;
+
+  destroyChart('indRadar');
+  charts['indRadar']=new Chart(document.getElementById('indRadar').getContext('2d'),{
+    type:'radar',
+    data:{labels:DIMS.map(d=>d.label),datasets:[{data:DIMS.map(d=>sc(latest,d.key)),backgroundColor:arch.barColor+'20',borderColor:arch.barColor,borderWidth:2,pointBackgroundColor:arch.barColor,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:8},color:'#AAA'},grid:{color:'#EEE'},angleLines:{color:'#EEE'},pointLabels:{font:{size:9,family:'IBM Plex Sans'},color:'#1A1A1A'}}},plugins:{legend:{display:false}}}
+  });
+  if(personIvs.length>1&&document.getElementById('timelineChart')){
+    destroyChart('timeline');
+    charts['timeline']=new Chart(document.getElementById('timelineChart').getContext('2d'),{
+      type:'line',
+      data:{labels:personIvs.map(iv=>iv.date),datasets:[
+        {label:'Willingness',data:personIvs.map(iv=>wScore(iv).toFixed(2)),borderColor:'#2BA86A',borderWidth:2,pointRadius:3,fill:false,tension:0.3},
+        {label:'Ability',data:personIvs.map(iv=>aScore(iv).toFixed(2)),borderColor:'#1A5FAB',borderWidth:2,pointRadius:3,fill:false,tension:0.3},
+        {label:'Total',data:personIvs.map(iv=>totalScore(iv).toFixed(2)),borderColor:'#E2001A',borderWidth:1.5,pointRadius:3,fill:false,tension:0.3,borderDash:[4,4]},
+      ]},
+      options:{responsive:true,scales:{y:{min:1,max:5,ticks:{stepSize:1,font:{size:8}},grid:{color:'#EEE'}},x:{ticks:{font:{size:8}}}},plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:8}}}}
+    });
+  }
+}
+
+// TENSIONS/CONCLUSIONS helpers
+function getTensionsList(iv){const c=parseJSON(iv.custom_tensions||'',null);return c!==null?c:TENSIONS_DEF.filter(t=>t.cond(iv)).map(t=>({text:t.name+': '+t.msg,color:t.color}));}
+function getConclusionsList(iv){const c=parseJSON(iv.custom_conclusions||'',null);return c!==null?c:classifyArchetype(iv).suggestions.map(s=>({text:s,auto:true}));}
+function editTension(idx,ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getTensionsList(iv);showEditModal('Editar tension',list[idx].text,false,t=>{list[idx].text=t;list[idx].auto=false;iv.custom_tensions=serializeJSON(list);document.getElementById('saveTensionsBtn').style.display='inline-flex';rerenderTensions(ivId,row);});}
+function deleteTension(idx,ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getTensionsList(iv);list.splice(idx,1);iv.custom_tensions=serializeJSON(list);document.getElementById('saveTensionsBtn').style.display='inline-flex';rerenderTensions(ivId,row);}
+function addTension(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;showEditModal('Nueva tension','',false,t=>{const list=getTensionsList(iv);list.push({text:t,color:'#FFF5E0'});iv.custom_tensions=serializeJSON(list);document.getElementById('saveTensionsBtn').style.display='inline-flex';rerenderTensions(ivId,row);});}
+function rerenderTensions(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getTensionsList(iv);document.getElementById('tensionsList').innerHTML=list.length?list.map((t,i)=>`<div class="tension-item" style="background:${t.color||'#FFF5E0'}"><div style="flex:1"><div class="tension-name">${t.text}</div></div><div style="display:flex;gap:4px"><button class="btn-icon" onclick="editTension(${i},'${ivId}',${row})">Ed</button><button class="btn-icon" onclick="deleteTension(${i},'${ivId}',${row})">x</button></div></div>`).join(''):'<div style="font-size:.7rem;color:var(--muted)">Sin tensiones.</div>';}
+async function saveTensions(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;try{await scriptGet({action:'updateCell',sheet:'Data',row,col:HEADERS_DATA.indexOf('custom_tensions')+1,value:iv.custom_tensions||''});document.getElementById('saveTensionsBtn').style.display='none';setStatus('ok','Guardado');}catch(e){console.error(e);}}
+function editConclusion(idx,ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getConclusionsList(iv);showEditModal('Editar conclusion',list[idx].text,false,t=>{list[idx]={text:t,auto:false};iv.custom_conclusions=serializeJSON(list);document.getElementById('saveConclusionsBtn').style.display='inline-flex';rerenderConclusions(ivId,row);});}
+function deleteConclusion(idx,ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getConclusionsList(iv);list.splice(idx,1);iv.custom_conclusions=serializeJSON(list);document.getElementById('saveConclusionsBtn').style.display='inline-flex';rerenderConclusions(ivId,row);}
+function addConclusion(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;showEditModal('Nueva conclusion','',false,t=>{const list=getConclusionsList(iv);list.push({text:t,auto:false});iv.custom_conclusions=serializeJSON(list);document.getElementById('saveConclusionsBtn').style.display='inline-flex';rerenderConclusions(ivId,row);});}
+function rerenderConclusions(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;const list=getConclusionsList(iv);document.getElementById('conclusionsList').innerHTML=list.map((c,i)=>`<div class="edit-item">${c.auto?`<span style="font-size:.54rem;font-family:'IBM Plex Mono',monospace;padding:2px 5px;background:var(--bg-mid);color:var(--muted);border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0">AUTO</span>`:''}<div class="edit-item-body">${c.text}</div><div style="display:flex;gap:4px"><button class="btn-icon" onclick="editConclusion(${i},'${ivId}',${row})">Ed</button><button class="btn-icon" onclick="deleteConclusion(${i},'${ivId}',${row})">x</button></div></div>`).join('');}
+async function saveConclusions(ivId,row){const iv=interviews.find(i=>i.id===ivId);if(!iv)return;try{await scriptGet({action:'updateCell',sheet:'Data',row,col:HEADERS_DATA.indexOf('custom_conclusions')+1,value:iv.custom_conclusions||''});document.getElementById('saveConclusionsBtn').style.display='none';setStatus('ok','Guardado');}catch(e){console.error(e);}}
+
+// EDIT MODAL
+function showEditModal(title,text,showPriority,callback){
+  document.getElementById('editModalTitle').textContent=title;
+  document.getElementById('editModalText').value=text;
+  document.getElementById('editModalPriorityRow').style.display=showPriority?'block':'none';
+  document.getElementById('editModalSave').onclick=()=>{
+    const t=document.getElementById('editModalText').value.trim();
+    const p=showPriority?document.getElementById('editModalPriority').value:null;
+    callback(t,p);hideEditModal();
+  };
+  document.getElementById('editModal').style.display='flex';
+}
+function hideEditModal(){document.getElementById('editModal').style.display='none';}
+
+// 03 SURVEYS LIST
+function renderSurveyList(){
+  const c=document.getElementById('surveyList');
+  if(!surveys.length){c.innerHTML='<div class="empty-state" style="padding:16px 0"><p>Sin encuestas</p></div>';return;}
+  c.innerHTML=surveys.sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`
+    <div class="survey-card ${s.id===selectedSurveyId?'selected':''}" onclick="selectSurvey('${s.id}')">
+      <div style="font-weight:600;font-size:.84rem;margin-bottom:3px">${s.name}</div>
+      <div style="font-size:.64rem;font-family:'IBM Plex Mono',monospace;color:var(--muted)">${fmtDate(s.date)}</div>
+      <div style="font-size:.66rem;color:var(--ink-soft);margin-top:3px">${s.n_complete} completas · ${s.n_started||'?'} iniciadas · ${s.n_total} enviadas</div>
+      ${pulseName(s.pulse_id)?`<div style="margin-top:4px"><span class="badge b-status-p">${pulseName(s.pulse_id)}</span></div>`:''}
+    </div>`).join('');
+}
+
+function selectSurvey(id){
+  selectedSurveyId=id;
+  renderSurveyList();
+  const survey=surveys.find(sv=>sv.id===id);
+  const det=document.getElementById('surveyMainDetail');
+  if(!survey||!det)return;
+  const allResps=surveyResponses.filter(r=>r.survey_id===id);
+  const areas=[...new Set(allResps.map(r=>r.area).filter(Boolean))].sort();
+  const nComplete=parseInt(survey.n_complete)||0;
+  const nStarted=parseInt(survey.n_started)||nComplete;
+  const compRate=Math.round(nComplete/ORG_TOTAL*100);
+  const startRate=Math.round(nStarted/ORG_TOTAL*100);
+  // Step 1: render shell HTML with filters already in DOM
+  det.innerHTML=`
+    <div style="font-weight:600;font-size:.9rem;margin-bottom:12px">${survey.name} &middot; ${fmtDate(survey.date)}</div>
+    <div class="stat-strip s3" style="margin-bottom:14px">
+      <div class="stat-box" style="border-top:3px solid var(--sg)">
+        <div class="stat-num" style="color:var(--sg)">${compRate}%</div>
+        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nComplete}/${ORG_TOTAL}</div>
+        <div class="stat-lbl">Tasa respuesta completa</div>
+      </div>
+      <div class="stat-box" style="border-top:3px solid var(--sa)">
+        <div class="stat-num" style="color:var(--sa)">${startRate}%</div>
+        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nStarted}/${ORG_TOTAL}</div>
+        <div class="stat-lbl">Tasa inicio encuesta</div>
+      </div>
+      <div class="stat-box" style="border-top:3px solid var(--border)">
+        <div class="stat-num">${ORG_TOTAL}</div>
+        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">universo</div>
+        <div class="stat-lbl">Personas en alcance</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="switchTab('survey-analysis');document.getElementById('sa-survey').value='${id}';renderSurveyAnalysis()">Ver analisis completo</button>
+    </div>
+    <div id="surveyArchDist" style="margin-bottom:12px"></div>
+    <div class="filter-bar" style="margin-bottom:10px">
+      <select class="filter-select" id="sv-area-f" onchange="refreshSurveyTab('${id}')"><option value="">Todas las areas</option>${areas.map(a=>`<option>${a}</option>`).join('')}</select>
+      <select class="filter-select" id="sv-col-f" onchange="refreshSurveyTab('${id}')"><option value="">Todos los colectivos</option><option>Organizacion</option><option>Equipo Proyecto</option></select>
+      <select class="filter-select" id="sv-arch-f" onchange="refreshSurveyTab('${id}')"><option value="">Todos los arquetipos</option>${Object.values(ARCHETYPES).map(a=>`<option value="${a.id}">${a.name}</option>`).join('')}</select>
+    </div>
+    <div id="surveyInlineResps"></div>`;
+  // Step 2: populate with data now that DOM elements exist
+  refreshSurveyTab(id);
+}
+
+function refreshSurveyTab(id){
+  const survey=surveys.find(sv=>sv.id===id);if(!survey)return;
+  const aF=document.getElementById('sv-area-f')?.value||'';
+  const cF=document.getElementById('sv-col-f')?.value||'';
+  const archF=document.getElementById('sv-arch-f')?.value||'';
+  const allResps=surveyResponses.filter(r=>r.survey_id===id);
+  const resps=allResps.filter(r=>(!aF||r.area===aF)&&(!cF||r.colectivo===cF)&&(!archF||classifyArchetype(r).id===archF));
+  // Arch distribution (always on full set)
+  const counts={};Object.keys(ARCHETYPES).forEach(k=>counts[k]=0);
+  allResps.forEach(r=>{const k=classifyArchetype(r).id;counts[k]=(counts[k]||0)+1;});
+  const distEl=document.getElementById('surveyArchDist');
+  if(distEl){
+    distEl.innerHTML='<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos</div>'+
+      Object.values(ARCHETYPES).map(a=>{const n=counts[a.id]||0;const pct=allResps.length?n/allResps.length*100:0;
+        return`<div class="dist-row"><div class="dist-label"><span class="badge ${a.badgeClass}">${a.name}</span></div><div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${a.distColor}"></div></div><div class="dist-val">${n}</div></div>`;
+      }).join('');
+  }
+  // Responses
+  renderSurveyInlineResponses(id,resps);
+}
+
+function toggleRespDetail(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+function renderSurveyInlineResponses(surveyId,resps){
+  if(!resps){const aF=document.getElementById('sv-area-f')?.value||'';const cF=document.getElementById('sv-col-f')?.value||'';const archF=document.getElementById('sv-arch-f')?.value||'';resps=surveyResponses.filter(r=>r.survey_id===surveyId&&(!aF||r.area===aF)&&(!cF||r.colectivo===cF)&&(!archF||classifyArchetype(r).id===archF));}
+  const c=document.getElementById('surveyInlineResps');if(!c)return;
+  if(!resps.length){c.innerHTML='<div style="font-size:.72rem;color:var(--muted);padding:10px 0">Sin respuestas para este filtro</div>';return;}
+  const questions=resps.length&&resps[0].colectivo==='Equipo Proyecto'?PROJ_QUESTIONS:ORG_QUESTIONS;
+  c.innerHTML=`<div style="display:grid;grid-template-columns:80px 90px 90px repeat(8,1fr);gap:6px;padding:5px 10px;font-size:.52rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--bg-mid);border-radius:var(--r);margin-bottom:5px">
+    <div>Area</div><div>Colectivo</div><div>Arquetipo</div>${questions.map(q=>`<div style="text-align:center">${q.short.split(' ').slice(0,2).join(' ')}</div>`).join('')}
+  </div>`
+  +resps.map((r,ri)=>{
+    const arch=classifyArchetype(r);
+    const isProj=r.colectivo==='Equipo Proyecto';
+    const qs=isProj?PROJ_QUESTIONS:ORG_QUESTIONS;
+    // Reconstruct per-question scores from dimension scores
+    const qScores=isProj?[
+      sc(r,'comprension'),sc(r,'conviccion'),sc(r,'energia'),sc(r,'confianza'),
+      sc(r,'capacidad'),sc(r,'capacidad'),sc(r,'soporte'),sc(r,'confianza')
+    ]:[
+      (sc(r,'comprension')+sc(r,'conviccion'))/2,sc(r,'comprension'),sc(r,'energia'),sc(r,'confianza'),
+      sc(r,'capacidad'),sc(r,'capacidad'),sc(r,'soporte'),sc(r,'confianza')
+    ];
+    const open=[r.open_q1,r.open_q2].filter(t=>t&&t.trim().length>3).join(' | ');
+    return`<div class="resp-row" style="cursor:pointer" onclick="toggleRespDetail('resp-${ri}')">
+      <div style="display:grid;grid-template-columns:80px 90px 90px repeat(8,1fr);gap:6px;align-items:center">
+        <div style="font-size:.68rem;font-weight:500">${r.area||'-'}</div>
+        <div><span class="badge ${isProj?'b-proj':'b-org'}">${isProj?'Eq Proy':'Org'}</span></div>
+        <div><span class="badge ${arch.badgeClass}">${arch.name}</span></div>
+        ${qScores.map(v=>{const c2=getHeatColor(v);return`<div style="text-align:center;padding:2px 3px;border-radius:2px;background:${c2.bg};color:${c2.fg};font-family:'IBM Plex Mono',monospace;font-size:.66rem;font-weight:600">${v>0?v.toFixed(1):'-'}</div>`;}).join('')}
+      </div>
+      <div id="resp-${ri}" style="display:none;padding:8px 0;border-top:1px solid var(--border);margin-top:6px">
+        ${qs.map((q,i)=>`<div style="display:grid;grid-template-columns:1fr 60px;gap:8px;padding:4px 0;border-bottom:1px solid var(--bg-mid)">
+          <div style="font-size:.7rem;color:var(--ink-soft)">${q.full}</div>
+          <div style="text-align:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:600;color:${getHeatColor(qScores[i]).fg}">${qScores[i]>0?qScores[i].toFixed(1):'-'}</span></div>
+        </div>`).join('')}
+        ${open?`<div style="margin-top:8px;font-size:.7rem;font-style:italic;color:var(--ink-soft);border-left:3px solid var(--border);padding-left:8px">"${open}"</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 04 SURVEY ANALYSIS
+function renderSurveyAnalysis(){
+  const surveyId=document.getElementById('sa-survey')?.value;
+  const areaF=document.getElementById('sa-area')?.value;
+  const colF=document.getElementById('sa-colectivo')?.value;
+  const archF=document.getElementById('sa-arch')?.value;
+  const container=document.getElementById('surveyAnalysisContent');
+  if(!surveyId){container.innerHTML='<div class="empty-state"><h3>Selecciona una encuesta</h3></div>';return;}
+  const survey=surveys.find(s=>s.id===surveyId);
+  if(!survey){return;}
+
+  let responses=surveyResponses.filter(r=>r.survey_id===surveyId&&(!areaF||r.area===areaF)&&(!colF||r.colectivo===colF)&&(!archF||classifyArchetype(r).id===archF));
+  if(!responses.length){container.innerHTML='<div class="empty-state"><h3>Sin respuestas para este filtro</h3></div>';return;}
+
+  // Update area options
+  const allAreas=[...new Set(surveyResponses.filter(r=>r.survey_id===surveyId).map(r=>r.area).filter(Boolean))].sort();
+  setSelect('sa-area',allAreas,'Todas las areas');
+  document.getElementById('sa-area').value=areaF;
+
+  const orgResps=responses.filter(r=>r.colectivo==='Organizacion');
+  const projResps=responses.filter(r=>r.colectivo==='Equipo Proyecto');
+  const avgDimsAll=DIMS.map(d=>{const v=responses.map(r=>sc(r,d.key));return v.reduce((a,b)=>a+b,0)/v.length;});
+  const avgDimsOrg=orgResps.length?DIMS.map(d=>{const v=orgResps.map(r=>sc(r,d.key));return v.reduce((a,b)=>a+b,0)/v.length;}):null;
+  const avgDimsProj=projResps.length?DIMS.map(d=>{const v=projResps.map(r=>sc(r,d.key));return v.reduce((a,b)=>a+b,0)/v.length;}):null;
+  const avgWAll=responses.reduce((s,r)=>s+wScore(r),0)/responses.length;
+  const avgAAll=responses.reduce((s,r)=>s+aScore(r),0)/responses.length;
+  const avgTotal=(avgWAll+avgAAll)/2;
+  const counts={aliado:0,entusiasta:0,retador:0,seguidorA:0,seguidor:0,desconectado:0};
+  responses.forEach(r=>counts[classifyArchetype(r).id]=(counts[classifyArchetype(r).id]||0)+1);
+
+  const areaScores=allAreas.map(area=>{
+    const rs=responses.filter(r=>r.area===area);
+    if(!rs.length)return null;
+    return{area,n:rs.length,
+      w:rs.reduce((s,r)=>s+wScore(r),0)/rs.length,
+      a:rs.reduce((s,r)=>s+aScore(r),0)/rs.length,
+      avg:rs.reduce((s,r)=>s+totalScore(r),0)/rs.length};
+  }).filter(Boolean).sort((a,b)=>a.avg-b.avg);
+
+  const{clusters,unclustered,totalOpen}=clusterResponses(responses);
+  const storedConclusions=parseJSON(survey.conclusions||'[]',[]);
+  const compRate=survey.n_total>0?Math.round(survey.n_complete/survey.n_total*100):0;
+
+  const weakDims=DIMS.filter((_,i)=>avgDimsAll[i]<3).map(d=>d.label);
+  const autoConcl=[];
+  if(avgTotal>=4)autoConcl.push({text:`Nivel de apropiacion alto (${avgTotal.toFixed(2)}/5.0). El colectivo muestra disposicion y capacidad solidas.`,auto:true});
+  else if(avgTotal>=3)autoConcl.push({text:`Nivel de apropiacion medio (${avgTotal.toFixed(2)}/5.0). Base para avanzar con margen de mejora relevante.`,auto:true});
+  else autoConcl.push({text:`Nivel de apropiacion bajo (${avgTotal.toFixed(2)}/5.0). El colectivo no esta preparado para absorber el cambio sin intervencion activa.`,auto:true});
+  if(orgResps.length&&projResps.length){
+    const orgAvg=orgResps.reduce((s,r)=>s+totalScore(r),0)/orgResps.length;
+    const projAvg=projResps.reduce((s,r)=>s+totalScore(r),0)/projResps.length;
+    const diff=projAvg-orgAvg;
+    autoConcl.push({text:`El equipo de proyecto (${projAvg.toFixed(1)}/5.0) muestra apropiacion ${Math.abs(diff).toFixed(1)} puntos ${diff>0?'superior':'inferior'} a la organizacion impactada (${orgAvg.toFixed(1)}/5.0). ${diff>0?'Diferencial esperado por contexto e informacion.':'Diferencial inusual — requiere analisis.'}`,auto:true});
+  }
+  if(weakDims.length)autoConcl.push({text:`Dimensiones por debajo de 3.0: ${weakDims.join(', ')}. Estas brechas deben orientar las proximas acciones.`,auto:true});
+  if(areaScores.length>1)autoConcl.push({text:`Area con menor apropiacion: ${areaScores[0].area} (${areaScores[0].avg.toFixed(1)}/5.0, n=${areaScores[0].n}). Area con mayor apropiacion: ${areaScores[areaScores.length-1].area} (${areaScores[areaScores.length-1].avg.toFixed(1)}/5.0).`,auto:true});
+  if(clusters.length)autoConcl.push({text:`Preocupacion mas frecuente: "${clusters[0].name}" (${clusters[0].pct}% de respuestas abiertas). ${clusters[0].quotes[0]?`Ejemplo: "${clusters[0].quotes[0]}"`:''} `,auto:true});
+
+  const allConclusions=[...storedConclusions,...autoConcl];
+
+  // Survey actions
+  const surveyActions=actions.filter(a=>a.origen==='Encuesta'&&(a.person||'').includes(survey.name||surveyId));
+
+  const qScoresOrg=orgResps.length?[
+    orgResps.reduce((s,r)=>s+(sc(r,'comprension')+sc(r,'conviccion'))/2,0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'comprension'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'energia'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'confianza'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'capacidad'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'capacidad'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'soporte'),0)/orgResps.length,
+    orgResps.reduce((s,r)=>s+sc(r,'confianza'),0)/orgResps.length,
+  ]:[];
+  const qScoresProj=projResps.length?[
+    projResps.reduce((s,r)=>s+sc(r,'comprension'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'conviccion'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'energia'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'confianza'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'capacidad'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'capacidad'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'soporte'),0)/projResps.length,
+    projResps.reduce((s,r)=>s+sc(r,'confianza'),0)/projResps.length,
+  ]:[];
+
+  container.innerHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:12px">
+      <div class="flow-num">1</div>
+      <div class="flow-label">Resultado · ${survey.name}</div>
+      <div style="margin-left:auto;font-size:.62rem;color:var(--muted);font-family:'IBM Plex Mono',monospace">${survey.date} · Tasa respuesta: ${compRate}% (${survey.n_complete}/${survey.n_total})</div>
+    </div>
+    <div class="stat-strip s4">
+      <div class="stat-box"><div class="stat-num" style="color:${avgTotal>=3.5?'var(--sg)':avgTotal>=3?'var(--sa)':'var(--sr)'}">${avgTotal.toFixed(2)}</div><div class="stat-lbl">Score global</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${avgWAll>=3?'var(--sg)':'var(--sr)'}">${avgWAll.toFixed(1)}</div><div class="stat-lbl">Willingness medio</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${avgAAll>=3?'var(--sg)':'var(--sr)'}">${avgAAll.toFixed(1)}</div><div class="stat-lbl">Ability medio</div></div>
+      <div class="stat-box"><div class="stat-num">${responses.length}</div><div class="stat-lbl">Respuestas analizadas</div></div>
+    </div>
+    ${(()=>{const sn=getGroupNarrative(avgWAll,avgAAll,avgTotal,counts,responses);return`<div class="narrative-block" style="margin-bottom:12px"><div class="narrative-tag">${sn.tag}</div><div class="narrative-text">"${sn.text}"</div></div>`;})()}
+
+    <div class="agg-grid" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Radar por colectivo</div>
+        <canvas id="surveyRadar" style="width:100%;max-height:240px"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribucion de arquetipos</div>
+        ${Object.values(ARCHETYPES).map(a=>{const n=counts[a.id]||0;const pct=responses.length?n/responses.length*100:0;return`<div class="dist-row"><div class="dist-label"><span class="badge ${a.badgeClass}">${a.name}</span></div><div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${a.distColor}"></div></div><div class="dist-val">${n}</div></div>`;}).join('')}
+        ${orgResps.length&&projResps.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div class="card-title" style="margin-bottom:6px">Por colectivo</div>
+          <div style="display:flex;gap:8px">
+            <div style="text-align:center;padding:8px;background:var(--blue-bg);border-radius:var(--r);flex:1">
+              <div style="font-size:.58rem;font-family:'IBM Plex Mono',monospace;color:var(--blue);text-transform:uppercase;margin-bottom:3px">Org (n=${orgResps.length})</div>
+              <div style="font-size:1.1rem;font-weight:300">${(orgResps.reduce((s,r)=>s+totalScore(r),0)/orgResps.length).toFixed(1)}</div>
+              <div style="font-size:.62rem;color:var(--muted)">W:${(orgResps.reduce((s,r)=>s+wScore(r),0)/orgResps.length).toFixed(1)} A:${(orgResps.reduce((s,r)=>s+aScore(r),0)/orgResps.length).toFixed(1)}</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:var(--purple-bg);border-radius:var(--r);flex:1">
+              <div style="font-size:.58rem;font-family:'IBM Plex Mono',monospace;color:var(--purple);text-transform:uppercase;margin-bottom:3px">Proy (n=${projResps.length})</div>
+              <div style="font-size:1.1rem;font-weight:300">${(projResps.reduce((s,r)=>s+totalScore(r),0)/projResps.length).toFixed(1)}</div>
+              <div style="font-size:.62rem;color:var(--muted)">W:${(projResps.reduce((s,r)=>s+wScore(r),0)/projResps.length).toFixed(1)} A:${(projResps.reduce((s,r)=>s+aScore(r),0)/projResps.length).toFixed(1)}</div>
+            </div>
+          </div>
+        </div>`:''}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          <div class="card-title" style="margin-bottom:7px">Media por dimension</div>
+          ${DIMS.map((d,i)=>{const v=avgDimsAll[i];const axColor='var(--ink-soft)';return`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="font-size:.65rem;font-weight:500;min-width:120px;color:var(--ink-soft)">${d.label}</span><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:${(v/5)*100}%;background:${getBarColor(v)}"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:.6rem;min-width:24px;text-align:right;color:${getHeatColor(v).fg}">${v.toFixed(1)}</span></div>`;}).join('')}
+        </div>
+      </div>
+
+      ${qScoresOrg.length?`<div class="card full-w">
+        <div class="card-title">Score por pregunta · Organizacion impactada</div>
+        ${ORG_QUESTIONS.map((q,i)=>{const v=qScoresOrg[i]||0;const c=getHeatColor(v);return`<div style="display:grid;grid-template-columns:1fr 70px 90px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bg-mid)">
+          <div><div style="font-size:.72rem;font-weight:500;margin-bottom:2px">${q.short}</div><div style="font-size:.62rem;color:var(--muted)">${q.full}</div></div>
+          <div style="text-align:center"><div style="display:inline-block;padding:3px 8px;border-radius:2px;background:${c.bg};color:${c.fg};font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:600">${v.toFixed(1)}</div></div>
+          <div style="font-size:.62rem;color:var(--muted)">${q.dim}</div>
+        </div>`;}).join('')}
+      </div>`:''}
+
+      ${qScoresProj.length?`<div class="card full-w">
+        <div class="card-title">Score por pregunta · Equipo de proyecto</div>
+        ${PROJ_QUESTIONS.map((q,i)=>{const v=qScoresProj[i]||0;const c=getHeatColor(v);return`<div style="display:grid;grid-template-columns:1fr 70px 90px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bg-mid)">
+          <div><div style="font-size:.72rem;font-weight:500;margin-bottom:2px">${q.short}</div><div style="font-size:.62rem;color:var(--muted)">${q.full}</div></div>
+          <div style="text-align:center"><div style="display:inline-block;padding:3px 8px;border-radius:2px;background:${c.bg};color:${c.fg};font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:600">${v.toFixed(1)}</div></div>
+          <div style="font-size:.62rem;color:var(--muted)">${q.dim}</div>
+        </div>`;}).join('')}
+      </div>`:''}
+
+      ${areaScores.length>1?`<div class="card full-w">
+        <div class="card-title">Score por area · Willingness / Ability / Global</div>
+        <div style="display:grid;grid-template-columns:140px 1fr 64px 64px 64px 36px;gap:8px;padding:5px 0;margin-bottom:6px;font-size:.56rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+          <div>Area</div><div>Willingness</div><div style="text-align:center">W</div><div style="text-align:center">A</div><div style="text-align:center">Global</div><div style="text-align:right">n</div>
+        </div>
+        ${areaScores.map(as=>{const cw=getHeatColor(as.w);const ca=getHeatColor(as.a);const cg=getHeatColor(as.avg);return`<div style="display:grid;grid-template-columns:140px 1fr 64px 64px 64px 36px;gap:8px;align-items:center;margin-bottom:7px">
+          <div style="font-size:.74rem;font-weight:500">${as.area}</div>
+          <div><div class="bar-track"><div class="bar-fill" style="width:${(as.avg/5)*100}%;background:${getBarColor(as.avg)}"></div></div></div>
+          <div style="text-align:center;padding:2px 4px;border-radius:2px;background:${cw.bg};color:${cw.fg};font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600">${as.w.toFixed(1)}</div>
+          <div style="text-align:center;padding:2px 4px;border-radius:2px;background:${ca.bg};color:${ca.fg};font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600">${as.a.toFixed(1)}</div>
+          <div style="text-align:center;padding:2px 4px;border-radius:2px;background:${cg.bg};color:${cg.fg};font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600">${as.avg.toFixed(1)}</div>
+          <div style="text-align:right;font-size:.6rem;color:var(--muted)">${as.n}</div>
+        </div>`;}).join('')}
+      </div>`:''}
+
+      ${clusters.length?`<div class="card full-w">
+        <div class="flow-header flow-input" style="border-bottom:none;padding:0;margin-bottom:12px">
+          <div class="flow-num">2</div>
+          <div class="flow-label">Analisis cualitativo · ${totalOpen} respuestas abiertas</div>
+        </div>
+        ${clusters.map(cl=>`<div class="cluster-card">
+          <div class="cluster-header">
+            <div class="cluster-icon" style="background:${cl.color}">*</div>
+            <div><div class="cluster-name">${cl.name}</div><div class="cluster-count">${cl.count} menciones · ${cl.pct}% de respuestas</div></div>
+          </div>
+          <div class="cluster-bar"><div class="cluster-bar-fill" style="width:${cl.pct}%;background:${cl.barColor}"></div></div>
+          ${cl.quotes.map(q=>`<div class="quote-block">${q}</div>`).join('')}
+        </div>`).join('')}
+        ${unclustered.length?`<div style="margin-top:6px"><div class="card-title" style="margin-bottom:5px">Otras menciones</div>${unclustered.map(q=>`<div class="quote-block">${q}</div>`).join('')}</div>`:''}
+      </div>`:''}
+
+      <div class="card full-w">
+        <div class="flow-header flow-concl" style="border-bottom:none;padding:0;margin-bottom:12px">
+          <div class="flow-num">3</div>
+          <div class="flow-label">Conclusiones de la encuesta</div>
+          <div class="btn-row" style="margin-left:auto">
+            <button class="btn-ghost btn-sm" onclick="addSurveyConcl('${surveyId}',${survey._row})">+ Anadir</button>
+            <button class="btn-primary btn-sm" id="saveSurveyConcBtn" style="display:none" onclick="saveSurveyConclusions('${surveyId}',${survey._row})">Guardar</button>
+          </div>
+        </div>
+        <div id="surveyConclusionsList">
+          ${allConclusions.map((c,i)=>`<div class="edit-item">
+            ${c.auto?`<span style="font-size:.54rem;font-family:'IBM Plex Mono',monospace;padding:2px 5px;background:var(--bg-mid);color:var(--muted);border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0">AUTO</span>`:''}
+            <div class="edit-item-body">${c.text}</div>
+            <div style="display:flex;gap:4px"><button class="btn-icon" onclick="editSurveyConcl(${i},'${surveyId}',${survey._row})">Ed</button><button class="btn-icon" onclick="deleteSurveyConcl(${i},'${surveyId}',${survey._row})">x</button></div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card full-w">
+        <div class="flow-header flow-action" style="border-bottom:none;padding:0;margin-bottom:12px">
+          <div class="flow-num">4</div>
+          <div class="flow-label">Acciones vinculadas</div>
+          <button class="btn-ghost btn-sm" style="margin-left:auto" onclick="showActionModal('Encuesta','${survey.name}')">+ Nueva accion</button>
+        </div>
+        ${surveyActions.length
+          ?surveyActions.map(ac=>`<div class="edit-item"><span class="edit-item-tag ${priorityClass(ac.priority)}">${ac.priority}</span><div class="edit-item-body">${ac.desc}<div style="font-size:.62rem;color:var(--muted);margin-top:2px">${ac.owner?'Resp: '+ac.owner+' · ':''}<span class="badge b-status-p">${ac.status||'Pendiente'}</span></div></div><div style="display:flex;gap:4px"><button class="btn-icon" onclick="showActionModal('Encuesta','${survey.name}','','','${ac.id}')">Ed</button><button class="btn-icon" onclick="deleteRow('Actions','${ac.id}',${ac._row})">x</button></div></div>`).join('')
+          :'<div style="font-size:.74rem;color:var(--muted)">Sin acciones registradas para esta encuesta. Pulse + Nueva accion para anadir.</div>'}
+      </div>
+    </div>`;
+
+  destroyChart('surveyRadar');
+  const datasets=[{label:'Total',data:avgDimsAll,backgroundColor:'rgba(226,0,26,0.08)',borderColor:'#E2001A',borderWidth:2,pointBackgroundColor:'#E2001A',pointRadius:4}];
+  if(avgDimsOrg)datasets.push({label:'Organizacion',data:avgDimsOrg,backgroundColor:'rgba(26,95,171,0.08)',borderColor:'#1A5FAB',borderWidth:1.5,pointRadius:3});
+  if(avgDimsProj)datasets.push({label:'Eq Proyecto',data:avgDimsProj,backgroundColor:'rgba(107,63,160,0.08)',borderColor:'#6B3FA0',borderWidth:1.5,pointRadius:3});
+  charts['surveyRadar']=new Chart(document.getElementById('surveyRadar').getContext('2d'),{
+    type:'radar',
+    data:{labels:DIMS.map(d=>d.label),datasets},
+    options:{responsive:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:8},color:'#AAA'},grid:{color:'#EEE'},angleLines:{color:'#EEE'},pointLabels:{font:{size:9,family:'IBM Plex Sans'},color:'#1A1A1A'}}},plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:8}}}}
+  });
+}
+
+// Survey conclusions
+function getSurveyConclusions(survey){return parseJSON(survey.conclusions||'[]',[]);}
+function addSurveyConcl(surveyId,row){const s=surveys.find(sv=>sv.id===surveyId);if(!s)return;showEditModal('Nueva conclusion','',false,t=>{const list=getSurveyConclusions(s);list.push({text:t,auto:false});s.conclusions=serializeJSON(list);document.getElementById('saveSurveyConcBtn').style.display='inline-flex';renderSurveyAnalysis();});}
+function editSurveyConcl(idx,surveyId,row){
+  const s=surveys.find(sv=>sv.id===surveyId);if(!s)return;
+  const stored=getSurveyConclusions(s);
+  // Handle both stored and auto
+  const allConclusions=buildSurveyConclusions(surveyId);
+  const item=allConclusions[idx];if(!item)return;
+  showEditModal('Editar conclusion',item.text,false,t=>{
+    if(idx<stored.length){stored[idx]={text:t,auto:false};}
+    else{stored.push({text:t,auto:false});}
+    s.conclusions=serializeJSON(stored);
+    document.getElementById('saveSurveyConcBtn').style.display='inline-flex';
+    renderSurveyAnalysis();
+  });
+}
+function deleteSurveyConcl(idx,surveyId,row){const s=surveys.find(sv=>sv.id===surveyId);if(!s)return;const list=getSurveyConclusions(s);if(idx<list.length){list.splice(idx,1);s.conclusions=serializeJSON(list);document.getElementById('saveSurveyConcBtn').style.display='inline-flex';renderSurveyAnalysis();}}
+function buildSurveyConclusions(surveyId){const s=surveys.find(sv=>sv.id===surveyId);if(!s)return[];return getSurveyConclusions(s);}
+async function saveSurveyConclusions(surveyId,row){const s=surveys.find(sv=>sv.id===surveyId);if(!s)return;try{await scriptGet({action:'updateCell',sheet:'Surveys',row,col:HEADERS_SURVEYS.indexOf('conclusions')+1,value:s.conclusions||''});document.getElementById('saveSurveyConcBtn').style.display='none';setStatus('ok','Conclusiones guardadas');}catch(e){console.error(e);}}
+
+// 05 GLOBAL
+function renderGlobal(){
+  const container=document.getElementById('globalContent');
+  const pulseFilter=document.getElementById('gl-pulse')?.value;
+  const sourceFilter=document.getElementById('gl-source')?.value||'all';
+  const colFilter=document.getElementById('gl-colectivo')?.value;
+
+  let ivPool=interviews;
+  if(pulseFilter)ivPool=ivPool.filter(iv=>iv.pulse_id===pulseFilter);
+  const latestByPerson={};
+  ivPool.forEach(iv=>{if(!latestByPerson[iv.name]||iv.date>latestByPerson[iv.name].date)latestByPerson[iv.name]=iv;});
+  const ivSample=Object.values(latestByPerson);
+
+  let srPool=surveyResponses;
+  if(pulseFilter){const ids=surveys.filter(s=>s.pulse_id===pulseFilter).map(s=>s.id);srPool=srPool.filter(r=>ids.includes(r.survey_id));}
+  if(colFilter)srPool=srPool.filter(r=>r.colectivo===colFilter);
+
+  const ivPoints=sourceFilter==='surveys'?[]:ivSample.map(iv=>({w:wScore(iv),a:aScore(iv),arch:classifyArchetype(iv).id,dims:DIMS.map(d=>sc(iv,d.key))}));
+  const srPoints=sourceFilter==='interviews'?[]:srPool.map(r=>({w:wScore(r),a:aScore(r),arch:classifyArchetype(r).id,dims:DIMS.map(d=>sc(r,d.key))}));
+  const allPoints=[...ivPoints,...srPoints];
+
+  if(!allPoints.length){container.innerHTML='<div class="empty-state"><h3>Sin datos para este filtro</h3></div>';return;}
+
+  const avgW=allPoints.reduce((s,p)=>s+p.w,0)/allPoints.length;
+  const avgA=allPoints.reduce((s,p)=>s+p.a,0)/allPoints.length;
+  const avgTotal=(avgW+avgA)/2;
+  const counts={aliado:0,entusiasta:0,retador:0,seguidorA:0,seguidor:0,desconectado:0};
+  allPoints.forEach(p=>counts[p.arch]=(counts[p.arch]||0)+1);
+  const atRisk=(counts.desconectado||0)+(counts.retador||0);
+  const atWatch=(counts.seguidor||0)+(counts.seguidorA||0);
+  const coveragePct=Math.round(allPoints.length/ORG_TOTAL*100);
+  const avgDims=DIMS.map((_,i)=>{const v=allPoints.map(p=>p.dims[i]);return v.reduce((a,b)=>a+b,0)/v.length;});
+  const avgDimsIv=ivPoints.length?DIMS.map((_,i)=>{const v=ivPoints.map(p=>p.dims[i]);return v.reduce((a,b)=>a+b,0)/v.length;}):null;
+  const avgDimsSr=srPoints.length?DIMS.map((_,i)=>{const v=srPoints.map(p=>p.dims[i]);return v.reduce((a,b)=>a+b,0)/v.length;}):null;
+
+  const archQuotes={};
+  Object.keys(ARCHETYPES).forEach(k=>{
+    const m=srPool.filter(r=>classifyArchetype(r).id===k&&((r.open_q1&&r.open_q1.trim().length>10)||(r.open_q2&&r.open_q2.trim().length>10)));
+    if(m.length){
+      const SKIP=new Set(['ninguna','ninguno','nada','no','de momento ninguna.','ninguno.','ninguna.']);
+      const best=m.find(r=>{const t=(r.open_q1||r.open_q2).trim().toLowerCase().replace(/[.,]+$/,'');return!SKIP.has(t)&&t.length>10;});
+      if(best)archQuotes[k]=(best.open_q1&&best.open_q1.trim().length>10?best.open_q1:best.open_q2).trim();
+    }
+    // Fallback: use interview notes for this archetype
+    if(!archQuotes[k]){
+      const ivMatch=ivSample.filter(iv=>classifyArchetype(iv).id===k&&iv.quotes&&iv.quotes.trim().length>10);
+      if(ivMatch.length){const q=ivMatch[0].quotes.split('|')[0].trim();if(q.length>10)archQuotes[k]=q;}
+    }
+  });
+  const{clusters}=clusterResponses(srPool);
+
+  let coherenceText='',coherenceTitle='',coherenceColor='var(--sg-bg)',coherenceBorder='var(--sg)';
+  if(ivPoints.length&&srPoints.length){
+    const ivAvg=ivPoints.reduce((s,p)=>s+(p.w+p.a)/2,0)/ivPoints.length;
+    const srAvg=srPoints.reduce((s,p)=>s+(p.w+p.a)/2,0)/srPoints.length;
+    const ivW=ivPoints.reduce((s,p)=>s+p.w,0)/ivPoints.length;
+    const srW=srPoints.reduce((s,p)=>s+p.w,0)/srPoints.length;
+    const ivA=ivPoints.reduce((s,p)=>s+p.a,0)/ivPoints.length;
+    const srA=srPoints.reduce((s,p)=>s+p.a,0)/srPoints.length;
+    const delta=Math.abs(ivAvg-srAvg);
+    const sign=ivAvg>srAvg?'superior':'inferior';
+    const dimGaps=DIMS.map((d,i)=>{const dv=Math.abs((avgDimsIv?avgDimsIv[i]:0)-(avgDimsSr?avgDimsSr[i]:0));return{label:d.label,gap:dv};}).sort((a,b)=>b.gap-a.gap);
+    const topGap=dimGaps[0];
+    if(delta<0.3){
+      coherenceTitle='Fuentes convergentes';
+      coherenceText=`Las entrevistas (${ivAvg.toFixed(1)}/5.0, n=${ivPoints.length}) y la encuesta (${srAvg.toFixed(1)}/5.0, n=${srPoints.length}) muestran un diagnostico coherente. Cuando ambas fuentes coinciden, la fiabilidad del analisis es alta y las intervenciones pueden disenarsse con mayor confianza. Diferencia maxima por dimension: ${topGap.label} (${topGap.gap.toFixed(1)} puntos).`;
+      coherenceColor='var(--sg-bg)';coherenceBorder='var(--sg)';
+    } else if(delta<0.6){
+      coherenceTitle='Ligera divergencia';
+      coherenceText=`Las entrevistas (${ivAvg.toFixed(1)}/5.0, n=${ivPoints.length}) muestran un nivel ${sign} a la encuesta (${srAvg.toFixed(1)}/5.0, n=${srPoints.length}) en ${delta.toFixed(1)} puntos. Esta diferencia puede deberse al sesgo de muestra (las entrevistas cubren perfiles seleccionados), al efecto de deseabilidad social en presencia del facilitador, o a que la encuesta captura el colectivo mas amplio con mayor variedad. La dimension con mayor brecha es ${topGap.label} (${topGap.gap.toFixed(1)} puntos). Recomendable investigar antes de tomar decisiones basadas en una sola fuente.`;
+      coherenceColor='var(--sa-bg)';coherenceBorder='var(--sa)';
+    } else{
+      coherenceTitle='Divergencia significativa';
+      coherenceText=`Las entrevistas (${ivAvg.toFixed(1)}/5.0, n=${ivPoints.length}) y la encuesta (${srAvg.toFixed(1)}/5.0, n=${srPoints.length}) muestran realidades distintas (diferencia de ${delta.toFixed(1)} puntos). Posibles causas: (1) las entrevistas cubren un perfil no representativo del colectivo total, (2) efecto de deseabilidad social significativo en las sesiones presenciales, (3) las dimensiones W y A divergen de forma asimetrica — W entrevistas ${ivW.toFixed(1)} vs encuesta ${srW.toFixed(1)}, A entrevistas ${ivA.toFixed(1)} vs encuesta ${srA.toFixed(1)}. Se recomienda ampliar la muestra de entrevistas antes de extraer conclusiones firmes.`;
+      coherenceColor='var(--sr-bg)';coherenceBorder='var(--sr)';
+    }
+  }
+
+  const weakDims=DIMS.filter((_,i)=>avgDims[i]<3).map(d=>d.label);
+  const groupNarrative=getWANarrative({sc_conviccion:avgW,sc_energia:avgW,sc_confianza:avgW,sc_comprension:avgA,sc_capacidad:avgA,sc_soporte:avgA});
+  const activePulse=pulses.find(p=>p.id===pulseFilter);
+  const storedConclusions=parseJSON(activePulse?.conclusions||'[]',[]);
+
+  // Auto conclusions as objects
+  const autoConcl=[];
+  if(avgTotal>=4)autoConcl.push({text:`Apropiacion solida (${avgTotal.toFixed(2)}/5.0). Base favorable para avanzar.`,auto:true});
+  else if(avgTotal>=3)autoConcl.push({text:`Nivel medio de apropiacion (${avgTotal.toFixed(2)}/5.0). Margen de mejora relevante antes de las siguientes fases.`,auto:true});
+  else autoConcl.push({text:`Nivel bajo de apropiacion (${avgTotal.toFixed(2)}/5.0). Riesgo real de resistencia sin intervencion activa.`,auto:true});
+  if(atRisk>0)autoConcl.push({text:`${atRisk} de ${allPoints.length} perfiles de riesgo (${Math.round(atRisk/allPoints.length*100)}%). Intervencion individual prioritaria.`,auto:true});
+  if(avgW>=3&&avgA<3)autoConcl.push({text:`El grupo quiere pero no puede aun: W(${avgW.toFixed(1)}) supera A(${avgA.toFixed(1)}). Foco en habilitacion.`,auto:true});
+  if(avgW<3&&avgA>=3)autoConcl.push({text:`El grupo puede pero no quiere: A(${avgA.toFixed(1)}) supera W(${avgW.toFixed(1)}). Foco en narrativa y conviccion.`,auto:true});
+  if(weakDims.length)autoConcl.push({text:`Dimensiones criticas (< 3.0): ${weakDims.join(', ')}.`,auto:true});
+  if(clusters.length)autoConcl.push({text:`Preocupacion principal en respuestas abiertas: "${clusters[0].name}" (${clusters[0].pct}% de menciones).`,auto:true});
+
+  const allConclusions=[...storedConclusions,...autoConcl];
+
+  // Auto actions
+  const autoActions=[];
+  if(atRisk>=1)autoActions.push({tag:'URGENTE',urgency:'tag-urgente',text:`Plan de intervencion para ${atRisk} perfiles de riesgo. Prioridad: Desconectados y Retadores.`});
+  if(weakDims.includes('Conviccion')||weakDims.includes('Confianza liderazgo'))autoActions.push({tag:'URGENTE',urgency:'tag-urgente',text:'Reforzar narrativa y visibilidad del liderazgo. La brecha de conviccion no se resuelve con comunicacion masiva.'});
+  if(counts.aliado>0)autoActions.push({tag:'PRIORITARIO',urgency:'tag-medio',text:`Activar los ${counts.aliado} aliados como red de embajadores.`});
+  if(weakDims.includes('Capacidad percibida'))autoActions.push({tag:'PRIORITARIO',urgency:'tag-medio',text:'Sesiones de habilitacion para areas con baja capacidad percibida.'});
+  if(clusters.find(c=>c.id==='empleo'))autoActions.push({tag:'PRIORITARIO',urgency:'tag-medio',text:'Comunicacion explicita sobre impacto en puestos de trabajo. La incertidumbre sobre el empleo es el bloqueo mas frecuente segun respuestas abiertas.'});
+  autoActions.push({tag:'SEGUIMIENTO',urgency:'tag-bajo',text:`Siguiente pulso en 4-6 semanas. Foco: ${weakDims.length?weakDims.join(', '):'consolidar avances'}.`});
+
+  const savedActions=actions.filter(a=>pulseFilter?a.pulse_id===pulseFilter:true).filter(a=>a.origen==='Global'||(!a.origen&&!a.person));
+
+  container.innerHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:12px">
+      <div class="flow-num">1</div>
+      <div class="flow-label">Resultado agregado${activePulse?' · '+activePulse.name:''}</div>
+      <div style="margin-left:auto;font-size:.62rem;font-family:'IBM Plex Mono',monospace;color:var(--muted)">${ivPoints.length} entrevistas + ${srPoints.length} respuestas encuesta</div>
+    </div>
+    <div class="stat-strip s5">
+      <div class="stat-box"><div class="stat-num">${allPoints.length}</div><div class="stat-lbl">Registros</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${coveragePct>=50?'var(--sg)':coveragePct>=25?'var(--sa)':'var(--sr)'}">${coveragePct}%</div><div class="stat-lbl">Cobertura (/${ORG_TOTAL})</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${avgTotal>=3.5?'var(--sg)':avgTotal>=3?'var(--sa)':'var(--sr)'}">${avgTotal.toFixed(1)}</div><div class="stat-lbl">Score medio</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${avgW>=3?'var(--sg)':'var(--sr)'}">${avgW.toFixed(1)}</div><div class="stat-lbl">Willingness</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${avgA>=3?'var(--sg)':'var(--sr)'}">${avgA.toFixed(1)}</div><div class="stat-lbl">Ability</div></div>
+    </div>
+    ${activePulse?`<div class="narrative-block" style="margin-bottom:12px">
+      <div class="narrative-tag">${groupNarrative.tag} · ${activePulse.name}</div>
+      <div class="narrative-text">"${groupNarrative.text}"</div>
+    </div>`:`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;font-size:.74rem;color:var(--muted)">Selecciona un pulso especifico para ver el resumen ejecutivo del periodo.</div>`}
+    ${coherenceText?`<div class="coherence-block" style="background:${coherenceColor};border-left:3px solid ${coherenceBorder};margin-bottom:12px">
+      <div><div style="font-size:.6rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:${coherenceBorder};margin-bottom:4px">Coherencia entrevistas vs encuesta · ${coherenceTitle}</div>
+      <div style="font-size:.76rem;color:var(--ink-soft);line-height:1.6">${coherenceText}</div></div>
+    </div>`:''}
+    <div class="agg-grid" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Radar agregado</div>
+        <canvas id="aggRadar" style="width:100%;max-height:240px"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribucion de arquetipos</div>
+        ${Object.values(ARCHETYPES).map(a=>{const n=counts[a.id]||0;const pct=allPoints.length?n/allPoints.length*100:0;return`<div class="dist-row"><div class="dist-label"><span class="badge ${a.badgeClass}">${a.name}</span></div><div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${a.distColor}"></div></div><div class="dist-val">${n}</div></div>`;}).join('')}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          <div class="card-title" style="margin-bottom:7px">Media por dimension</div>
+          ${DIMS.map((d,i)=>{const v=avgDims[i];const vi=avgDimsIv?avgDimsIv[i]:null;const vs=avgDimsSr?avgDimsSr[i]:null;const axColor='var(--ink-soft)';const delta=vi!==null&&vs!==null?vs-vi:null;return`<div style="margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px"><span style="font-size:.65rem;font-weight:500;min-width:120px;color:var(--ink-soft)">${d.label}</span><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:${(v/5)*100}%;background:${getBarColor(v)}"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:.6rem;min-width:24px;text-align:right;color:${getHeatColor(v).fg}">${v.toFixed(1)}</span></div>
+            ${delta!==null?`<div style="margin-left:120px;font-size:.58rem;display:flex;gap:8px"><span style="color:var(--muted)">Entrev: ${vi.toFixed(1)}</span><span style="color:var(--blue)">Enc: ${vs.toFixed(1)}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:${Math.abs(delta)<0.3?'var(--muted)':delta>0?'var(--sg)':'var(--sr)'}">${delta>0?'+':''}${delta.toFixed(1)}</span></div>`:''}
+          </div>`;}).join('')}
+        </div>
+      </div>
+
+      ${(()=>{
+        const archVoices=Object.values(ARCHETYPES).map(a=>{
+          const archResps=srPool.filter(r=>classifyArchetype(r).id===a.id);
+          if(!archResps.length)return null;
+          // Theme clusters for this archetype
+          const{clusters:aClusters}=clusterResponses(archResps);
+          const topClusters=aClusters.slice(0,2);
+          // Representative quotes (skip empty/trivial)
+          const SKIP=new Set(['ninguna','ninguno','nada','no','de momento ninguna.']);
+          const quotes=archResps.map(r=>[r.open_q1,r.open_q2].filter(t=>t&&t.trim().length>10)).flat()
+            .filter(t=>{const clean=t.trim().toLowerCase().replace(/[.,]+$/,'');return!SKIP.has(clean);}).slice(0,2);
+          // Dim profile: weakest dimension in this group
+          const dimAvgs=DIMS.map(d=>{const v=archResps.map(r=>sc(r,d.key));return{label:d.label,avg:v.reduce((s,x)=>s+x,0)/v.length};});
+          const weakDim=dimAvgs.reduce((a,b)=>a.avg<b.avg?a:b);
+          const strongDim=dimAvgs.reduce((a,b)=>a.avg>b.avg?a:b);
+          // B: narrative summary
+          const wAvg=archResps.reduce((s,r)=>s+wScore(r),0)/archResps.length;
+          const aAvg=archResps.reduce((s,r)=>s+aScore(r),0)/archResps.length;
+          const narrative=topClusters.length?
+            `El grupo (n=${archResps.length}, W${wAvg.toFixed(1)}/A${aAvg.toFixed(1)}) expresa principalmente preocupacion por ${topClusters.map(c=>c.name.toLowerCase()).join(' y ')}. Su dimension mas debil es ${weakDim.label.toLowerCase()} (${weakDim.avg.toFixed(1)}/5) y la mas solida ${strongDim.label.toLowerCase()} (${strongDim.avg.toFixed(1)}/5).`:
+            `Grupo de ${archResps.length} persona${archResps.length!==1?'s':''} (W${wAvg.toFixed(1)}/A${aAvg.toFixed(1)}). Dimension mas debil: ${weakDim.label.toLowerCase()} (${weakDim.avg.toFixed(1)}/5).`;
+          return{arch:a,n:archResps.length,narrative,topClusters,quotes};
+        }).filter(Boolean);
+        if(!archVoices.length)return'';
+        return`<div class="card full-w">
+          <div class="card-title">Perfil cualitativo por arquetipo</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+            ${archVoices.map(v=>`<div style="padding:14px;background:var(--bg);border-radius:var(--r);border-top:3px solid ${v.arch.barColor}">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span class="badge ${v.arch.badgeClass}">${v.arch.name}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted)">n=${v.n}</span>
+              </div>
+              <div style="font-size:.72rem;color:var(--ink-soft);line-height:1.5;margin-bottom:8px">${v.narrative}</div>
+              ${v.topClusters.length?`<div style="margin-bottom:6px">${v.topClusters.map(c=>`<span style="display:inline-block;padding:2px 7px;border-radius:10px;background:var(--bg-mid);font-size:.6rem;font-family:'IBM Plex Mono',monospace;margin:2px">${c.name} ${c.pct}%</span>`).join('')}</div>`:''}
+              ${v.quotes.map(q=>`<div class="quote-block" style="font-size:.68rem;margin-bottom:4px">${q}</div>`).join('')}
+            </div>`).join('')}
+          </div>
+        </div>`;
+      })()}
+      ${clusters.length?`<div class="card full-w">
+        <div class="card-title">Voces del colectivo · temas recurrentes</div>
+        ${clusters.slice(0,3).map(cl=>`<div class="cluster-card">
+          <div class="cluster-header">
+            <div class="cluster-icon" style="background:${cl.color}">*</div>
+            <div><div class="cluster-name">${cl.name}</div><div class="cluster-count">${cl.count} menciones · ${cl.pct}%</div></div>
+          </div>
+          <div class="cluster-bar"><div class="cluster-bar-fill" style="width:${cl.pct}%;background:${cl.barColor}"></div></div>
+          ${cl.quotes.slice(0,2).map(q=>`<div class="quote-block">${q}</div>`).join('')}
+        </div>`).join('')}
+      </div>`:''}
+
+
+    </div>
+
+    <div class="flow-header flow-concl" style="margin-bottom:10px">
+      <div class="flow-num">2</div>
+      <div class="flow-label">Conclusiones${activePulse?' · '+activePulse.name:''}</div>
+      <div class="btn-row" style="margin-left:auto">
+        <button class="btn-ghost btn-sm" onclick="addGlobalConclusion('${activePulse?.id||''}',${activePulse?._row||0})">+ Anadir</button>
+        <button class="btn-primary btn-sm" id="saveGlobalConcBtn" style="display:none" onclick="saveGlobalConclusions('${activePulse?.id||''}',${activePulse?._row||0})">Guardar</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px" id="globalConclusionsList">
+      ${allConclusions.map((c,i)=>`<div class="edit-item">
+        ${c.auto?`<span style="font-size:.54rem;font-family:'IBM Plex Mono',monospace;padding:2px 5px;background:var(--bg-mid);color:var(--muted);border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0">AUTO</span>`:''}
+        <div class="edit-item-body">${c.text}</div>
+        ${activePulse?`<div style="display:flex;gap:4px"><button class="btn-icon" onclick="editGlobalConclusion(${i},'${activePulse.id}',${activePulse._row})">Ed</button><button class="btn-icon" onclick="deleteGlobalConclusion(${i},'${activePulse.id}',${activePulse._row})">x</button></div>`:''}
+      </div>`).join('')}
+      ${!activePulse?`<div style="font-size:.7rem;color:var(--muted);padding:6px 0">Selecciona un pulso especifico para editar conclusiones.</div>`:''}
+    </div>
+
+    <div class="flow-header flow-action" style="margin-bottom:10px">
+      <div class="flow-num">3</div><div class="flow-label">Acciones del periodo</div>
+      <button class="btn-ghost btn-sm" style="margin-left:auto" onclick="showActionModal('Global')">+ Nueva</button>
+    </div>
+    <div class="card">
+      <div style="font-size:.64rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Las acciones sugeridas pueden convertirse en acciones editables pulsando el boton +</div>
+      ${autoActions.map(a=>`<div class="edit-item"><span class="edit-item-tag ${a.urgency}">${a.tag}</span><span class="edit-item-body">${a.text}</span><button class="btn-icon" onclick="showActionModal('Global','','','','',${JSON.stringify(a.text)},${JSON.stringify(a.tag)})" title="Convertir en accion editable">+</button></div>`).join('')}
+      ${savedActions.map(ac=>`<div class="edit-item"><span class="edit-item-tag ${priorityClass(ac.priority)}">${ac.priority}</span><div class="edit-item-body">${ac.desc}<div style="font-size:.62rem;color:var(--muted);margin-top:2px">${ac.owner?'Resp: '+ac.owner+' · ':''}<span class="badge b-status-p">${ac.status||'Pendiente'}</span></div></div><button class="btn-icon" onclick="showActionModal('Global','','','','${ac.id}')">Ed</button><button class="btn-icon" onclick="deleteRow('Actions','${ac.id}',${ac._row})">x</button></div>`).join('')}
+    </div>`;
+
+  destroyChart('aggRadar');
+  const datasets=[{label:'Grupo',data:avgDims,backgroundColor:'rgba(226,0,26,0.08)',borderColor:'#E2001A',borderWidth:2,pointBackgroundColor:'#E2001A',pointRadius:4},{label:'Ref(3)',data:DIMS.map(()=>3),backgroundColor:'transparent',borderColor:'#DDD',borderWidth:1,borderDash:[4,4],pointRadius:0}];
+  if(avgDimsIv&&avgDimsSr){datasets.push({label:'Entrevistas',data:avgDimsIv,backgroundColor:'transparent',borderColor:'#2BA86A',borderWidth:1.5,pointRadius:3,borderDash:[2,2]});datasets.push({label:'Encuesta',data:avgDimsSr,backgroundColor:'transparent',borderColor:'#1A5FAB',borderWidth:1.5,pointRadius:3,borderDash:[2,2]});}
+  charts['aggRadar']=new Chart(document.getElementById('aggRadar').getContext('2d'),{
+    type:'radar',
+    data:{labels:DIMS.map(d=>d.label),datasets},
+    options:{responsive:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:8},color:'#AAA'},grid:{color:'#EEE'},angleLines:{color:'#EEE'},pointLabels:{font:{size:9,family:'IBM Plex Sans'},color:'#1A1A1A'}}},plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:8}}}}
+  });
+}
+
+// Global conclusions
+function getGlobalConclusions(pulse){return parseJSON(pulse?.conclusions||'[]',[]);}
+function addGlobalConclusion(pulseId,row){const p=pulses.find(p=>p.id===pulseId);if(!p)return;showEditModal('Nueva conclusion','',false,t=>{const list=getGlobalConclusions(p);list.push({text:t,auto:false});p.conclusions=serializeJSON(list);document.getElementById('saveGlobalConcBtn').style.display='inline-flex';renderGlobal();});}
+function editGlobalConclusion(idx,pulseId,row){
+  const p=pulses.find(p=>p.id===pulseId);if(!p)return;
+  const stored=getGlobalConclusions(p);
+  // Get the item from the rendered list (may be stored or auto)
+  const listEl=document.getElementById('globalConclusionsList');
+  const items=listEl?.querySelectorAll('.edit-item');
+  const bodyEl=items?.[idx]?.querySelector('.edit-item-body');
+  const currentText=bodyEl?bodyEl.textContent:'';
+  showEditModal('Editar conclusion',currentText,false,t=>{
+    if(idx<stored.length){stored[idx]={text:t,auto:false};}
+    else{stored.push({text:t,auto:false});}
+    p.conclusions=serializeJSON(stored);
+    document.getElementById('saveGlobalConcBtn').style.display='inline-flex';
+    renderGlobal();
+  });
+}
+function deleteGlobalConclusion(idx,pulseId,row){const p=pulses.find(p=>p.id===pulseId);if(!p)return;const list=getGlobalConclusions(p);if(idx<list.length){list.splice(idx,1);p.conclusions=serializeJSON(list);document.getElementById('saveGlobalConcBtn').style.display='inline-flex';renderGlobal();}}
+async function saveGlobalConclusions(pulseId,row){const p=pulses.find(p=>p.id===pulseId);if(!p)return;try{await scriptGet({action:'updateCell',sheet:'Pulses',row,col:HEADERS_PULSES.indexOf('conclusions')+1,value:p.conclusions||''});document.getElementById('saveGlobalConcBtn').style.display='none';setStatus('ok','Guardado');}catch(e){console.error(e);}}
+
+// 06 ACTIONS KANBAN
+function renderActions(){
+  const fp=document.getElementById('ac-pulse')?.value;
+  const fo=document.getElementById('ac-origen')?.value;
+  const fa=document.getElementById('ac-arch')?.value;
+  const farea=document.getElementById('ac-area')?.value;
+  const fs=document.getElementById('ac-status')?.value;
+
+  let filtered=actions.filter(a=>
+    (!fp||a.pulse_id===fp)&&(!fo||a.origen===fo)&&
+    (!fa||a.arch===fa)&&(!farea||a.area===farea)&&
+    (!fs||a.status===fs)
+  );
+
+  const c=document.getElementById('actionsContent');
+  const total=filtered.length;
+  const urgent=filtered.filter(a=>a.priority==='URGENTE'&&a.status!=='Completada'&&a.status!=='Cancelada').length;
+  const inProgress=filtered.filter(a=>a.status==='En curso').length;
+  const done=filtered.filter(a=>a.status==='Completada').length;
+
+  if(!total){
+    c.innerHTML='<div class="empty-state"><h3>Sin acciones</h3><p>Pulsa "+ Nueva accion" para empezar.</p></div>';
+    return;
+  }
+
+  const byPriority={URGENTE:filtered.filter(a=>a.priority==='URGENTE'),PRIORITARIO:filtered.filter(a=>a.priority==='PRIORITARIO'),SEGUIMIENTO:filtered.filter(a=>a.priority!=='URGENTE'&&a.priority!=='PRIORITARIO')};
+
+  function renderCard(ac){
+    const origen=ac.origen||'Entrevista';
+    const arch=ac.arch?ARCHETYPES[ac.arch]:null;
+    return`<div class="action-card">
+      <div class="action-card-meta">
+        <span class="badge ${origen==='Encuesta'?'b-encuesta':'b-entrevista'}">${origen}</span>
+        ${arch?`<span class="badge ${arch.badgeClass}">${arch.name}</span>`:''}
+        ${ac.area?`<span style="font-size:.58rem;font-family:'IBM Plex Mono',monospace;padding:2px 5px;background:var(--bg-mid);color:var(--muted);border-radius:2px">${ac.area}</span>`:''}
+      </div>
+      <div class="action-card-desc">${ac.desc}</div>
+      <div class="action-card-footer">
+        ${ac.person?`<span class="action-card-sub">${ac.person}</span>`:''}
+        ${ac.owner?`<span class="action-card-sub">Resp: ${ac.owner}</span>`:''}
+        ${ac.due?`<span class="action-card-sub">Limite: ${fmtDate(ac.due)}</span>`:''}
+        <select class="status-select" style="margin-left:auto" onchange="updateActionStatus('${ac.id}',${ac._row},this.value)">
+          ${['Pendiente','En curso','Completada','Cancelada'].map(s=>`<option${ac.status===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+        <button class="btn-icon" onclick="showActionModal('${ac.origen||'Entrevista'}','${ac.person||''}','${ac.arch||''}','${ac.area||''}','${ac.id}')">Ed</button>
+        <button class="btn-icon" onclick="deleteRow('Actions','${ac.id}',${ac._row})">x</button>
+      </div>
+    </div>`;
+  }
+
+  c.innerHTML=`
+    <div class="actions-kpi-strip">
+      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">Total acciones</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${urgent>0?'var(--sr)':'var(--muted)'}">${urgent}</div><div class="stat-lbl">Urgentes pendientes</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--blue)">${inProgress}</div><div class="stat-lbl">En curso</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--sg)">${done}</div><div class="stat-lbl">Completadas</div></div>
+    </div>
+    <div class="kanban">
+      <div class="kanban-col">
+        <div class="kanban-col-header" style="color:var(--sr)">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--sr);display:inline-block"></span>
+          URGENTE <span style="color:var(--muted);font-weight:400">(${byPriority.URGENTE.length})</span>
+        </div>
+        ${byPriority.URGENTE.map(renderCard).join('')}
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-header" style="color:var(--sa)">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--sa);display:inline-block"></span>
+          PRIORITARIO <span style="color:var(--muted);font-weight:400">(${byPriority.PRIORITARIO.length})</span>
+        </div>
+        ${byPriority.PRIORITARIO.map(renderCard).join('')}
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-header" style="color:var(--blue)">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block"></span>
+          SEGUIMIENTO <span style="color:var(--muted);font-weight:400">(${byPriority.SEGUIMIENTO.length})</span>
+        </div>
+        ${byPriority.SEGUIMIENTO.map(renderCard).join('')}
+      </div>
+    </div>`;
+}
+
+async function updateActionStatus(id,row,status){
+  const ac=actions.find(a=>a.id===id);if(ac)ac.status=status;
+  try{await scriptGet({action:'updateCell',sheet:'Actions',row,col:HEADERS_ACTIONS.indexOf('status')+1,value:status});}catch(e){console.error(e);}
+}
+
+// ACTION MODAL
+function toggleActionFields(){
+  const origen=document.getElementById('am-origen')?.value;
+  document.getElementById('am-person-field').style.display=origen==='Encuesta'?'none':'block';
+  document.getElementById('am-arch-field').style.display=origen==='Encuesta'?'block':'none';
+}
+
+function showActionModal(origen='Entrevista',person='',arch='',area='',editId='',prefillDesc='',prefillPriority=''){
+  const ac=editId?actions.find(a=>a.id===editId):null;
+  document.getElementById('am-edit-id').value=editId;
+  document.getElementById('am-origen').value=ac?.origen||origen||'Entrevista';
+  document.getElementById('am-person').value=ac?.person||person||'';
+  document.getElementById('am-arch').value=ac?.arch||arch||'';
+  document.getElementById('am-area').value=ac?.area||area||'';
+  document.getElementById('am-pulse').value=ac?.pulse_id||'';
+  document.getElementById('am-desc').value=ac?.desc||prefillDesc||'';
+  document.getElementById('am-priority').value=ac?.priority||prefillPriority||'PRIORITARIO';
+  document.getElementById('am-owner').value=ac?.owner||'';
+  document.getElementById('am-due').value=ac?.due||'';
+  document.getElementById('am-notes').value=ac?.notes||'';
+  toggleActionFields();
+  document.getElementById('actionModal').style.display='flex';
+}
+function hideActionModal(){document.getElementById('actionModal').style.display='none';}
+async function saveAction(){
+  const desc=document.getElementById('am-desc').value.trim();
+  if(!desc){document.getElementById('amStatus').textContent='! Descripcion obligatoria';return;}
+  const editId=document.getElementById('am-edit-id').value;
+  const id=editId||Date.now().toString(36);
+  const row=[id,
+    document.getElementById('am-origen').value,
+    document.getElementById('am-person').value.trim(),
+    document.getElementById('am-arch').value,
+    document.getElementById('am-area').value.trim(),
+    document.getElementById('am-pulse').value,
+    desc,
+    document.getElementById('am-priority').value,
+    document.getElementById('am-owner').value.trim(),
+    document.getElementById('am-due').value,
+    'Pendiente',
+    document.getElementById('am-notes').value.trim(),
+    new Date().toISOString().split('T')[0]
+  ];
+  try{
+    if(editId){const ex=actions.find(a=>a.id===editId);if(ex){row[10]=ex.status||'Pendiente';await scriptGet({action:'delete',sheet:'Actions',rowIndex:ex._row});}}
+    await scriptGet({action:'append',sheet:'Actions',row:row.join('||')});
+    hideActionModal();await loadAll();
+  }catch(e){document.getElementById('amStatus').textContent='Error';console.error(e);}
+}
+
+// PULSE MODAL
+function showPulseModal(){document.getElementById('pulseModal').style.display='flex';}
+function hidePulseModal(){document.getElementById('pulseModal').style.display='none';}
+async function savePulse(){
+  const name=document.getElementById('pm-name').value.trim();
+  if(!name){document.getElementById('pmStatus').textContent='! Nombre obligatorio';return;}
+  const id=Date.now().toString(36);
+  const row=[id,name,document.getElementById('pm-start').value,document.getElementById('pm-end').value,document.getElementById('pm-facilitator').value.trim(),document.getElementById('pm-objective').value.trim(),'[]'];
+  try{await scriptGet({action:'append',sheet:'Pulses',row:row.join('||')});hidePulseModal();['pm-name','pm-start','pm-end','pm-facilitator','pm-objective'].forEach(f=>document.getElementById(f).value='');await loadAll();}
+  catch(e){document.getElementById('pmStatus').textContent='Error';}
+}
+
+// DELETE
+async function saveModelConfig(newConfig, facilitatorName, notes){
+  // Increment version
+  const lastVNum=parseInt((MODEL.version||'v1').replace('v',''))||1;
+  const newVersion='v'+(lastVNum+1);
+  const id=Date.now().toString(36);
+  const row=[
+    id, newVersion, new Date().toISOString().split('T')[0], facilitatorName,
+    newConfig.w_low, newConfig.w_high, newConfig.a_low, newConfig.a_high,
+    newConfig.split_seguidor, JSON.stringify(newConfig.matrix_map), notes
+  ];
+  await scriptGet({action:'append',sheet:'ModelConfig',row:row.join('||')});
+  // Apply to global MODEL
+  Object.assign(MODEL, newConfig, {version:newVersion, date:row[2], facilitator:facilitatorName, notes});
+  // Re-render all active views
+  renderList();renderGlobal();renderActions();
+  if(selectedSurveyId){selectSurvey(selectedSurveyId);}
+  if(selectedPerson){renderIndividual();}
+  setStatus('ok','Modelo actualizado · '+newVersion+' · '+row[2]);
+}
+
+async function deleteRow(sheet,id,row){
+  if(!confirm('Eliminar?'))return;
+  try{await scriptGet({action:'delete',sheet,rowIndex:row});await loadAll();}
+  catch(e){setStatus('err','Error al eliminar');console.error(e);}
+}
+
+// EXCEL UPLOAD
+function handleDrop(e){e.preventDefault();document.getElementById('uploadZone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)processExcelFile(f);}
+function handleFileSelect(e){const f=e.target.files[0];if(f)processExcelFile(f);}
+function processExcelFile(file){
+  setStatus('loading','Procesando encuesta...');
+  if(window.XLSX){parseWithSheetJS(file);return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=()=>parseWithSheetJS(file);
+  s.onerror=()=>setStatus('err','Error al cargar libreria Excel.');
+  document.head.appendChild(s);
+}
+
+async function parseWithSheetJS(file){
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(!data||data.length<3){setStatus('err','Formato no reconocido');return;}
+    const keyRow=data[0],questionRow=data[1],allRows=data.slice(2);
+    const startedRows=allRows.filter(row=>String(row[3]||'')!=='0'&&row[3]!==undefined&&row[3]!=='');
+    const completeRows=allRows.filter(row=>{const f=String(row[5]||'').toLowerCase();const prog=parseFloat(row[3])||0;return f==='true'||f==='1'||prog>=100;});
+
+    let isProjCol=-1,areaCol=-1;
+    questionRow.forEach((cell,i)=>{
+      const t=String(cell).toLowerCase();
+      if(t.includes('perteneces al equipo de proyecto'))isProjCol=i;
+      if(t.includes('a que equipo perteneces')||t.includes('equipo perteneces'))areaCol=i;
+    });
+
+    let orgCols=[],projCols=[],openOrgCol=-1,openOrg2Col=-1,openProjCol=-1;
+    questionRow.forEach((cell,i)=>{
+      const t=String(cell).toLowerCase();
+      if(t.includes('entiendo por qu'))orgCols.push(i);
+      else if(t.includes('idea general'))orgCols.push(i);
+      else if(t.includes('actitud abierta'))orgCols.push(i);
+      else if(t.includes('tranquilo')&&t.includes('confiado'))orgCols.push(i);
+      else if(t.includes('podre adquirir'))orgCols.push(i);
+      else if(t.includes('capaz de adaptar'))orgCols.push(i);
+      else if(t.includes('tiempo y apoyo'))orgCols.push(i);
+      else if(t.includes('clara y suficiente'))orgCols.push(i);
+      else if(t.includes('piloto que estamos'))projCols.push(i);
+      else if(t.includes('beneficios concretos'))projCols.push(i);
+      else if(t.includes('dispuesto')&&t.includes('contribuir'))projCols.push(i);
+      else if(t.includes('confianza')&&t.includes('ilusion'))projCols.push(i);
+      else if(t.includes('conocimiento')&&t.includes('piloto'))projCols.push(i);
+      else if(t.includes('seguro')&&t.includes('cambiar'))projCols.push(i);
+      else if(t.includes('tiempo necesario')&&t.includes('dedicar'))projCols.push(i);
+      else if(t.includes('acompanamiento')&&t.includes('consistentes'))projCols.push(i);
+      if(t.includes('necesidades, preocupaciones'))openOrgCol=i;
+      if(t.includes('aspectos clave'))openProjCol=i;
+      if(t.includes('claro a quien'))openOrg2Col=i;
+    });
+
+    if(orgCols.length<8){orgCols=[];projCols=[];keyRow.forEach((cell,i)=>{const k=String(cell||'');if(k.match(/Colectivo 1_\d/))orgCols.push(i);if(k.match(/Eq Proyecto1_\d/))projCols.push(i);});}
+
+    const parsed=completeRows.map(row=>{
+      const isProjVal=String(row[isProjCol]||'').toLowerCase();
+      const isProj=isProjVal==='si'||isProjVal==='si'||isProjVal==='true';
+      const colectivo=isProj?'Equipo Proyecto':'Organizacion';
+      const area=String(row[areaCol]||'');
+      const P=(cols,i)=>parseFloat(row[cols[i]])||0;
+      let scores={sc_comprension:0,sc_conviccion:0,sc_energia:0,sc_confianza:0,sc_capacidad:0,sc_soporte:0};
+      if(isProj&&projCols.length>=8){
+        scores.sc_comprension=P(projCols,0);
+        scores.sc_conviccion=(P(projCols,1)+P(projCols,5))/2;
+        scores.sc_energia=P(projCols,2);
+        scores.sc_confianza=(P(projCols,3)+P(projCols,7))/2;
+        scores.sc_capacidad=(P(projCols,4)+P(projCols,5))/2;
+        scores.sc_soporte=P(projCols,6);
+      } else if(orgCols.length>=8){
+        scores.sc_comprension=(P(orgCols,0)+P(orgCols,1))/2;
+        scores.sc_conviccion=P(orgCols,0);
+        scores.sc_energia=P(orgCols,2);
+        scores.sc_confianza=(P(orgCols,3)+P(orgCols,7))/2;
+        scores.sc_capacidad=(P(orgCols,4)+P(orgCols,5))/2;
+        scores.sc_soporte=P(orgCols,6);
+      }
+      const open1=isProj?String(row[openProjCol]||''):String(row[openOrgCol]||'');
+      const open2=!isProj?String(row[openOrg2Col]||''):'';
+      const arch=classifyArchetype(scores).id;
+      return{colectivo,area,arch,open_q1:open1,open_q2:open2,...scores};
+    }).filter(r=>r.sc_comprension||r.sc_energia||r.sc_conviccion);
+
+    pendingSurveyData={file:file.name,responses:parsed,nTotal:ORG_TOTAL,nStarted:startedRows.length||completeRows.length,nComplete:completeRows.length};
+    document.getElementById('sm-name').value=file.name.replace(/\.xlsx$/i,'');
+    document.getElementById('sm-date').value=new Date().toISOString().split('T')[0];
+    setSelectObj('sm-pulse',pulses.map(p=>({v:p.id,l:p.name})),'Sin pulso');
+    const orgN=parsed.filter(r=>r.colectivo==='Organizacion').length;
+    const projN=parsed.filter(r=>r.colectivo==='Equipo Proyecto').length;
+    document.getElementById('sm-preview').innerHTML=`<strong>${parsed.length}</strong> respuestas validas procesadas<br><span style="color:var(--blue)">${orgN} organizacion</span> + <span style="color:var(--purple)">${projN} equipo proyecto</span><br><span style="color:var(--muted);font-size:.68rem">${startedRows.length} iniciadas · ${allRows.length} enviadas · ${ORG_TOTAL} en alcance</span>`;
+    document.getElementById('surveyModal').style.display='flex';
+    setStatus('ok','Encuesta procesada. Completa los datos para guardar.');
+  }catch(e){setStatus('err','Error al procesar: '+e.message);console.error(e);}
+}
+
+function hideSurveyModal(){document.getElementById('surveyModal').style.display='none';pendingSurveyData=null;}
+
+async function saveSurvey(){
+  if(!pendingSurveyData){document.getElementById('smStatus').textContent='Sin datos';return;}
+  const name=document.getElementById('sm-name').value.trim();
+  if(!name){document.getElementById('smStatus').textContent='! Nombre obligatorio';return;}
+  document.getElementById('smStatus').textContent='Guardando...';
+  setStatus('loading','Guardando encuesta...');
+  const id=Date.now().toString(36);
+  const surveyRow=[id,name,document.getElementById('sm-date').value,document.getElementById('sm-pulse').value,
+    document.getElementById('sm-facilitator').value.trim(),
+    pendingSurveyData.nTotal,pendingSurveyData.nStarted||pendingSurveyData.nComplete,pendingSurveyData.nComplete,
+    '[]','',new Date().toISOString().split('T')[0]];
+  try{
+    await scriptGet({action:'append',sheet:'Surveys',row:surveyRow.join('||')});
+    for(const r of pendingSurveyData.responses){
+      const rid=Math.random().toString(36).slice(2,10);
+      const respRow=[rid,id,r.area||'',r.colectivo,
+        (r.sc_comprension||0).toFixed(2),(r.sc_conviccion||0).toFixed(2),(r.sc_energia||0).toFixed(2),
+        (r.sc_confianza||0).toFixed(2),(r.sc_capacidad||0).toFixed(2),(r.sc_soporte||0).toFixed(2),
+        r.arch||'',r.open_q1||'',r.open_q2||'',''];
+      await scriptGet({action:'append',sheet:'SurveyResponses',row:respRow.join('||')});
+    }
+    hideSurveyModal();
+    await loadAll();
+    selectedSurveyId=id;
+    renderSurveyList();
+    selectSurvey(id);
+    document.getElementById('sa-survey').value=id;
+    setStatus('ok','Encuesta guardada correctamente');
+  }catch(e){document.getElementById('smStatus').textContent='Error';setStatus('err','Error al guardar');console.error(e);}
+}
+
+// MODEL EDITOR FUNCTIONS
+const ARCH_NAMES={aliado:'Aliado Activo',entusiasta:'Entusiasta',retador:'Retador',seguidorA:'Seguidor Activo',seguidor:'Seguidor Pasivo',desconectado:'Desconectado'};
+const W_LEVELS=['H','M','L'];
+const A_LEVELS=['L','M','H'];
+const W_LABELS={H:'W Alto',M:'W Medio',L:'W Bajo'};
+const A_LABELS={H:'A Alto',M:'A Medio',L:'A Bajo'};
+
+function toggleModelEditor(){
+  const ed=document.getElementById('modelEditor');
+  const showing=ed.style.display!=='none';
+  ed.style.display=showing?'none':'block';
+  if(!showing){initModelEditor();}
+}
+
+function initModelEditor(){
+  // Set sliders to current MODEL values
+  const setSlider=(id,val)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.value=val;
+    document.getElementById(id+'-val').textContent=parseFloat(val).toFixed(2);
+  };
+  setSlider('cfg-w-low',MODEL.w_low);
+  setSlider('cfg-w-high',MODEL.w_high);
+  setSlider('cfg-a-low',MODEL.a_low);
+  setSlider('cfg-a-high',MODEL.a_high);
+  setSlider('cfg-split',MODEL.split_seguidor);
+  buildMatrixEditor();
+  updateModelPreview();
+  loadVersionHistory();
+}
+
+function buildMatrixEditor(){
+  const ed=document.getElementById('matrixEditor');if(!ed)return;
+  const mono="font-family:'IBM Plex Mono',monospace";
+  let h=`<div style="background:var(--bg-mid);border-radius:var(--r);padding:6px;${mono};font-size:.6rem;text-transform:uppercase;color:var(--muted)"></div>`;
+  ['A Bajo','A Medio','A Alto'].forEach(l=>{
+    h+=`<div style="background:var(--bg-mid);border-radius:var(--r);padding:6px;text-align:center;font-size:.6rem;${mono};text-transform:uppercase;color:var(--blue)">${l}</div>`;
+  });
+  ['H','M','L'].forEach(wl=>{
+    h+=`<div style="background:var(--bg-mid);border-radius:var(--r);padding:6px;display:flex;align-items:center;font-size:.6rem;${mono};text-transform:uppercase;color:var(--sg)">${W_LABELS[wl]}</div>`;
+    ['L','M','H'].forEach(al=>{
+      const cell='W'+wl+'_A'+al;
+      const current=MODEL.matrix_map[cell]||'seguidor';
+      const isSeg=current==='seguidor'||current==='seguidorA';
+      h+=`<div style="padding:3px"><select id="cell-${cell}" onchange="updateModelPreview()" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:4px 5px;${mono};font-size:.6rem;background:var(--bg);outline:none;cursor:pointer">
+        ${Object.entries(ARCH_NAMES).filter(([k])=>k!=='seguidorA').map(([k,v])=>`<option value="${k}"${(current===k||(isSeg&&k==='seguidor'))?' selected':''}>${v}</option>`).join('')}
+      </select></div>`;
+    });
+  });
+  ed.innerHTML=h;
+}
+
+function getEditorConfig(){
+  const val=(id)=>parseFloat(document.getElementById(id)?.value)||0;
+  const matrix_map={};
+  ['H','M','L'].forEach(wl=>{
+    ['L','M','H'].forEach(al=>{
+      const cell='W'+wl+'_A'+al;
+      const el=document.getElementById('cell-'+cell);
+      if(el)matrix_map[cell]=el.value;
+    });
+  });
+  return{
+    w_low:val('cfg-w-low'), w_high:val('cfg-w-high'),
+    a_low:val('cfg-a-low'), a_high:val('cfg-a-high'),
+    split_seguidor:val('cfg-split'), matrix_map
+  };
+}
+
+function updateModelPreview(){
+  // Update slider display values
+  ['cfg-w-low','cfg-w-high','cfg-a-low','cfg-a-high','cfg-split'].forEach(id=>{
+    const el=document.getElementById(id);const vEl=document.getElementById(id+'-val');
+    if(el&&vEl)vEl.textContent=parseFloat(el.value).toFixed(2);
+  });
+  // Calculate preview distribution using all available data
+  const cfg=getEditorConfig();
+  const allData=[...interviews,...surveyResponses];
+  if(!allData.length){document.getElementById('modelPreview').textContent='Sin datos para previsualizar.';return;}
+
+  // Temporary classify function with new config
+  function previewClassify(iv){
+    const w=wScore(iv),a=aScore(iv),t=totalScore(iv);
+    const wl=w>cfg.w_high?'H':w>=cfg.w_low?'M':'L';
+    const al=a>cfg.a_high?'H':a>=cfg.a_low?'M':'L';
+    const cell='W'+wl+'_A'+al;
+    let archId=cfg.matrix_map[cell]||'seguidor';
+    if(archId==='seguidor'){archId=t>cfg.split_seguidor?'seguidorA':'seguidor';}
+    return archId;
+  }
+
+  // Use latest interview per person + all survey responses
+  const latestByPerson={};
+  interviews.forEach(iv=>{if(!latestByPerson[iv.name]||iv.date>latestByPerson[iv.name].date)latestByPerson[iv.name]=iv;});
+  const pool=[...Object.values(latestByPerson),...surveyResponses];
+  const counts={};Object.keys(ARCHETYPES).forEach(k=>counts[k]=0);
+  pool.forEach(iv=>counts[previewClassify(iv)]=(counts[previewClassify(iv)]||0)+1);
+  const total=pool.length;
+
+  const previewEl=document.getElementById('modelPreview');
+  previewEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    Object.entries(ARCHETYPES).map(([k,a])=>{
+      const n=counts[k]||0;const pct=total?Math.round(n/total*100):0;
+      return`<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border)">
+        <span class="badge ${a.badgeClass}" style="font-size:.52rem">${a.name}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:600;margin-left:auto">${n} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></span>
+      </div>`;
+    }).join('')+'</div>';
+}
+
+function resetModelEditor(){initModelEditor();}
+
+async function applyModelConfig(){
+  const facilitator=document.getElementById('cfg-facilitator')?.value.trim();
+  if(!facilitator){document.getElementById('cfgStatus').textContent='! Indica el facilitador';return;}
+  const notes=document.getElementById('cfg-notes')?.value.trim()||'';
+  const cfg=getEditorConfig();
+  if(cfg.w_low>=cfg.w_high){document.getElementById('cfgStatus').textContent='! W Low debe ser menor que W High';return;}
+  if(cfg.a_low>=cfg.a_high){document.getElementById('cfgStatus').textContent='! A Low debe ser menor que A High';return;}
+  document.getElementById('cfgStatus').textContent='Guardando...';
+  try{
+    await saveModelConfig(cfg,facilitator,notes);
+    document.getElementById('cfgStatus').textContent='Guardado · '+MODEL.version;
+    updateModelSummary();
+    loadVersionHistory();
+    // Re-render methodology matrix display
+    renderMethodologyMatrix();
+  }catch(e){document.getElementById('cfgStatus').textContent='Error al guardar';console.error(e);}
+}
+
+function updateModelSummary(){
+  const el=document.getElementById('modelSummary');if(!el)return;
+  el.innerHTML=`<span style="font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted)">W: Bajo&lt;${MODEL.w_low} / Medio ${MODEL.w_low}-${MODEL.w_high} / Alto&gt;${MODEL.w_high} &nbsp;|&nbsp; A: Bajo&lt;${MODEL.a_low} / Medio ${MODEL.a_low}-${MODEL.a_high} / Alto&gt;${MODEL.a_high} &nbsp;|&nbsp; Split Seguidor: ${MODEL.split_seguidor}</span>`;
+  const badge=document.getElementById('modelVersionBadge');if(badge)badge.textContent=MODEL.version+' · '+(MODEL.date||'');
+}
+
+async function loadVersionHistory(){
+  const el=document.getElementById('modelVersionHistory');if(!el)return;
+  try{
+    const r=await scriptGet({action:'read',sheet:'ModelConfig'});
+    const rows=parseSheet(r.data);
+    if(!rows.length){el.textContent='Sin historial de versiones.';return;}
+    el.innerHTML=rows.slice(-5).reverse().map(r=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg-mid)">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;white-space:nowrap">${r.version}</span>
+        <div>
+          <div style="font-size:.7rem;font-weight:500">${fmtDate(r.date)} · ${r.facilitator}</div>
+          <div style="font-size:.64rem;color:var(--muted)">W: &lt;${r.w_low} / &gt;${r.w_high} &nbsp; A: &lt;${r.a_low} / &gt;${r.a_high} &nbsp; Split: ${r.split_seguidor}</div>
+          ${r.notes?`<div style="font-size:.64rem;color:var(--ink-soft);font-style:italic">${r.notes}</div>`:''}
+        </div>
+      </div>`).join('');
+  }catch(e){el.textContent='Error al cargar historial.';}
+}
+
+function renderMethodologyMatrix(){
+  // Update the static methodology matrix display if visible
+  const el=document.getElementById('methMatrixDisplay');
+  if(!el)return;
+  el.innerHTML=buildMethodologyMatrixHTML();
+}
+
+function buildMethodologyMatrixHTML(){
+  const cells=['WH_AH','WH_AM','WH_AL','WM_AH','WM_AM','WM_AL','WL_AH','WL_AM','WL_AL'];
+  // Build display table from current MODEL
+  return'<table class="meth-table" style="margin-bottom:8px"><thead><tr><th></th>'+
+    `<th>W Bajo (&lt;${MODEL.w_low})</th><th>W Medio (${MODEL.w_low}&ndash;${MODEL.w_high})</th><th>W Alto (&gt;${MODEL.w_high})</th></tr></thead><tbody>`+
+    ['H','M','L'].map(al=>{
+      const label=al==='H'?`A Alto (&gt;${MODEL.a_high})`:al==='M'?`A Medio (${MODEL.a_low}&ndash;${MODEL.a_high})`:`A Bajo (&lt;${MODEL.a_low})`;
+      return`<tr><td><strong>${label}</strong></td>`+
+        ['L','M','H'].map(wl=>{
+          const cell='W'+wl+'_A'+al;
+          const archId=MODEL.matrix_map[cell]||'seguidor';
+          const arch=ARCHETYPES[archId]||ARCHETYPES.seguidor;
+          const isSeg=archId==='seguidor'||archId==='seguidorA';
+          return`<td style="background:${arch.distColor}20;color:${arch.barColor};font-weight:600">${arch.name}${isSeg?'*':''}</td>`;
+        }).join('')+'</tr>';
+    }).join('')+
+    '</tbody></table>'+
+    `<div style="font-size:.68rem;color:var(--muted)">* Seguidor Activo si score total &gt; ${MODEL.split_seguidor} &nbsp;|&nbsp; Seguidor Pasivo si score total &le; ${MODEL.split_seguidor}</div>`;
+}
+
+// INIT
+buildDimInputs();
+initSheets().then(()=>loadAll());
+</script>
+</body>
+</html>
