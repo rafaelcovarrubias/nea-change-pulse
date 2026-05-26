@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEA · Change Pulse</title>
+<title>Change Pulse Monitor</title>
 <script src="./chart.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -228,6 +228,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .empty-state p{font-size:.72rem;}
 canvas{display:block;width:100%!important;}
 
+/* AUTH */
+.auth-screen{position:fixed;inset:0;background:#F7F7F7;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.auth-box{background:#fff;border:1px solid #E0E0E0;border-radius:3px;padding:40px;width:360px;text-align:center;}
+.auth-logo{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.15em;color:#E2001A;margin-bottom:24px;font-weight:500;}
+.auth-title{font-size:1.1rem;font-weight:600;margin-bottom:6px;letter-spacing:-.01em;}
+.auth-sub{font-size:.72rem;color:#AAA;margin-bottom:28px;}
+.auth-input{width:100%;border:1px solid #E0E0E0;border-radius:3px;padding:11px 14px;font-family:'IBM Plex Sans',sans-serif;font-size:.88rem;text-align:center;letter-spacing:.15em;outline:none;margin-bottom:12px;}
+.auth-input:focus{border-color:#E2001A;}
+.auth-btn{width:100%;background:#E2001A;color:#fff;border:none;border-radius:3px;padding:11px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;}
+.auth-btn:hover{background:#B50015;}
+.auth-error{font-size:.7rem;color:#E2001A;min-height:20px;font-family:'IBM Plex Mono',monospace;}
+.auth-user{display:flex;align-items:center;gap:6px;font-size:.64rem;font-family:'IBM Plex Mono',monospace;color:#AAA;cursor:pointer;}
+.auth-user:hover{color:#E2001A;}
+
 @media(max-width:960px){
   main{padding:12px;}
   .agg-grid,.ind-layout,.fg2,.fg3,.fg4,.kanban{grid-template-columns:1fr;}
@@ -241,10 +255,10 @@ canvas{display:block;width:100%!important;}
 
 <header>
   <div style="display:flex;align-items:center;gap:10px">
-    <div class="er-badge">NEA</div>
+    <div class="er-badge">CP</div>
     <div>
       <div class="h-title">Change Pulse Monitor</div>
-      <div class="h-sub">Gestion del Cambio · Proyecto NEA · 176 personas en alcance</div>
+      <div class="h-sub">Gestion del Cambio · Change Pulse Monitor</div>
     </div>
   </div>
   <div class="h-right">
@@ -534,8 +548,8 @@ canvas{display:block;width:100%!important;}
     </div>
 
     <div class="meth-section">
-      <div class="meth-h1">Marco metodologico · Change Pulse NEA</div>
-      <div class="meth-p">El Change Pulse Monitor es un sistema de seguimiento continuo del estado de cambio organizacional durante la transformacion NEA. Combina dos fuentes de datos — entrevistas cualitativas y encuestas cuantitativas — para producir un diagnostico compartido que oriente las decisiones del equipo de cambio.</div>
+      <div class="meth-h1">Marco metodologico · Change Pulse</div>
+      <div class="meth-p">El Change Pulse Monitor es un sistema de seguimiento continuo del estado de cambio organizacional. Combina dos fuentes de datos — entrevistas cualitativas y encuestas cuantitativas — para producir un diagnostico compartido que oriente las decisiones del equipo de cambio.</div>
       <div class="meth-p">El modelo se basa en la distincion entre <strong>querer cambiar</strong> y <strong>poder cambiar</strong>, representados por los ejes Willingness y Ability. Esta separacion es clave porque los bloqueos de cada eje requieren intervenciones distintas: un deficit de Willingness se aborda con narrativa, conviccion y confianza; un deficit de Ability se aborda con formacion, soporte y claridad operativa.</div>
       <div class="meth-p" style="background:var(--bg);padding:12px;border-radius:var(--r);border-left:3px solid var(--er)"><strong>Principio de compresion:</strong> Lo que sube en la jerarquia de governance se comprime, no se resume. Cada nivel recibe la informacion en el formato y densidad apropiados para su rol de decision.</div>
     </div>
@@ -641,8 +655,8 @@ canvas{display:block;width:100%!important;}
       <table class="meth-table">
         <thead><tr><th>Pregunta</th><th>Dimension</th><th>Peso</th></tr></thead>
         <tbody>
-          <tr><td>P1 · Entiendo por que se impulsa NEA y su relevancia</td><td>Comprension + Conviccion</td><td>Cuenta en ambas dimensiones</td></tr>
-          <tr><td>P2 · Tengo idea de como NEA impactara en mi trabajo</td><td>Comprension</td><td>Completo</td></tr>
+          <tr><td>P1 · Entiendo por que se impulsa este proyecto y su relevancia</td><td>Comprension + Conviccion</td><td>Cuenta en ambas dimensiones</td></tr>
+          <tr><td>P2 · Tengo idea de como el proyecto impactara en mi trabajo</td><td>Comprension</td><td>Completo</td></tr>
           <tr><td>P3 · Tengo actitud abierta ante los cambios</td><td>Energia / Agencia</td><td>Completo</td></tr>
           <tr><td>P4 · Me siento mas tranquilo que preocupado</td><td>Confianza liderazgo</td><td>Proxy</td></tr>
           <tr><td>P5 · Podre adquirir las habilidades necesarias</td><td>Capacidad percibida</td><td>Completo</td></tr>
@@ -655,7 +669,7 @@ canvas{display:block;width:100%!important;}
       <table class="meth-table">
         <thead><tr><th>Pregunta</th><th>Dimension</th><th>Peso</th></tr></thead>
         <tbody>
-          <tr><td>P1 · El piloto aportara valor para Aprovisionamiento</td><td>Comprension</td><td>Completo</td></tr>
+          <tr><td>P1 · El proyecto aportara valor para el area</td><td>Comprension</td><td>Completo</td></tr>
           <tr><td>P2 · Veo beneficios concretos a nivel de mi rol</td><td>Conviccion</td><td>Completo</td></tr>
           <tr><td>P3 · Estoy dispuesto a contribuir activamente</td><td>Energia / Agencia</td><td>Completo</td></tr>
           <tr><td>P4 · Predomina la confianza sobre el estres</td><td>Confianza liderazgo</td><td>Completo</td></tr>
@@ -770,8 +784,66 @@ canvas{display:block;width:100%!important;}
   </div>
 </div>
 
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">CHANGE PULSE</div>
+    <div class="auth-title">Acceso restringido</div>
+    <div class="auth-sub">Introduce tu clave de acceso personal</div>
+    <input class="auth-input" type="password" id="authInput" placeholder="· · · · · ·" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="auth-btn" onclick="doLogin()">Acceder</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- STATUS BAR USER BADGE (injected after login) -->
+
 <script>
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyHIQ_C7-D8qVwBVfZ7Hgb0dkePcydstFZzxBRvfmnRfYmRg_IRFW_xr5NqnfVhunFW/exec';
+// ─── AUTHENTICATION ───────────────────────────────────────
+const SESSION_KEY='cp_session';
+const SESSION_TTL=8*60*60*1000;
+let CURRENT_USER=null;
+
+function checkSession(){
+  try{
+    const raw=sessionStorage.getItem(SESSION_KEY);
+    if(!raw)return false;
+    const s=JSON.parse(raw);
+    if(Date.now()-s.ts>SESSION_TTL){sessionStorage.removeItem(SESSION_KEY);return false;}
+    CURRENT_USER=s.user;return true;
+  }catch{return false;}
+}
+function saveSession(user){sessionStorage.setItem(SESSION_KEY,JSON.stringify({user,ts:Date.now()}));CURRENT_USER=user;}
+
+async function doLogin(){
+  const key=document.getElementById('authInput')?.value.trim();
+  const errEl=document.getElementById('authError');
+  if(!key){errEl.textContent='Introduce tu clave de acceso.';return;}
+  errEl.textContent='Verificando...';
+  try{
+    const r=await fetch(`${SCRIPT_URL}?action=auth&key=${encodeURIComponent(key)}`);
+    const j=await r.json();
+    if(j.ok&&j.user){
+      saveSession(j.user);
+      document.getElementById('authScreen').style.display='none';
+      injectUserBadge(j.user);
+      initSheets().then(()=>loadAll());
+    }else{
+      errEl.textContent='Clave incorrecta. Contacta con el administrador.';
+      document.getElementById('authInput').value='';
+    }
+  }catch(e){errEl.textContent='Error de conexion. Intenta de nuevo.';console.error(e);}
+}
+function injectUserBadge(user){
+  const bar=document.querySelector('.status-bar');if(!bar)return;
+  const d=document.createElement('div');
+  d.innerHTML=`<div class="auth-user" onclick="doLogout()" title="Cerrar sesion"><span>&#x25CF;</span> ${user} &nbsp;&middot;&nbsp; Cerrar sesion</div>`;
+  bar.appendChild(d.firstChild);
+}
+function doLogout(){if(!confirm('Cerrar sesion?'))return;sessionStorage.removeItem(SESSION_KEY);location.reload();}
+
+// ─── SCRIPT URL ───────────────────────────────────────────
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzRU65OjaifUTzScx7KW0QED4mRsXXW4_KNy8-OfDSQlcMHbUdXpJBo3rtc6J6P1Ug_/exec';
 const ORG_TOTAL=176;
 
 const HEADERS_DATA=['id','name','date','role','channel','facilitator','pulse_id','context','obs','quotes','conclusions','notes',
@@ -814,21 +886,21 @@ const DIMS_A=[
 const DIMS=[...DIMS_W,...DIMS_A];
 
 const ORG_QUESTIONS=[
-  {short:'Por que de NEA',          full:'Entiendo por que se impulsa NEA y su relevancia para mi area',          dim:'Comprension / Conviccion'},
-  {short:'Impacto en mi trabajo',   full:'Tengo idea de como NEA podria impactar en mi trabajo concreto',         dim:'Comprension'},
-  {short:'Actitud abierta',         full:'Tengo actitud abierta ante los cambios que NEA pueda introducir',       dim:'Energia'},
-  {short:'Tranquilidad vs angustia',full:'Me siento mas tranquilo que preocupado respecto a NEA',                dim:'Confianza liderazgo'},
+  {short:'Por que del proyecto',          full:'Entiendo por que se impulsa este proyecto y su relevancia para mi area',          dim:'Comprension / Conviccion'},
+  {short:'Impacto en mi trabajo',   full:'Tengo idea de como el proyecto podria impactar en mi trabajo concreto',         dim:'Comprension'},
+  {short:'Actitud abierta',         full:'Tengo actitud abierta ante los cambios que el proyecto pueda introducir',       dim:'Energia'},
+  {short:'Tranquilidad vs angustia',full:'Me siento mas tranquilo que preocupado respecto al proyecto',                dim:'Confianza liderazgo'},
   {short:'Adquirir habilidades',    full:'Confio en que podre adquirir las habilidades necesarias',              dim:'Capacidad percibida'},
   {short:'Adaptar forma de trabajar',full:'Me siento capaz de adaptar mi forma habitual de trabajar',            dim:'Capacidad percibida'},
   {short:'Tiempo y apoyo',          full:'Creo que dispondre del tiempo y apoyo necesarios para adaptarme',      dim:'Red de soporte'},
-  {short:'Comunicacion clara',      full:'La comunicacion sobre NEA ha sido clara y suficiente',                  dim:'Confianza liderazgo'},
+  {short:'Comunicacion clara',      full:'La comunicacion sobre el proyecto ha sido clara y suficiente',                  dim:'Confianza liderazgo'},
 ];
 const PROJ_QUESTIONS=[
-  {short:'Valor para Aprovisionamiento',full:'El piloto aportara valor para Aprovisionamiento',                  dim:'Comprension'},
+  {short:'Valor para el area',full:'El proyecto aportara valor para el area',                  dim:'Comprension'},
   {short:'Beneficios en mi rol',    full:'Veo beneficios concretos a nivel de mi trabajo y rol',                  dim:'Conviccion'},
-  {short:'Contribuir activamente',  full:'Estoy dispuesto a contribuir activamente al piloto',                    dim:'Energia'},
+  {short:'Contribuir activamente',  full:'Estoy dispuesto a contribuir activamente al proyecto',                    dim:'Energia'},
   {short:'Confianza vs estres',     full:'Predomina la confianza y la ilusion sobre el estres e incertidumbre',  dim:'Confianza liderazgo'},
-  {short:'Conocimiento para piloto',full:'Tengo el conocimiento y habilidades necesarios para el piloto',        dim:'Capacidad percibida'},
+  {short:'Conocimiento para el proyecto',full:'Tengo el conocimiento y habilidades necesarios para el proyecto',        dim:'Capacidad percibida'},
   {short:'Seguridad para cambiar',  full:'Me siento seguro para cambiar el enfoque habitual y ajustar',          dim:'Capacidad / Conviccion'},
   {short:'Tiempo disponible',       full:'Dispongo del tiempo necesario para dedicar al proyecto',                dim:'Red de soporte'},
   {short:'Comunicacion consistente',full:'La comunicacion y acompanamiento del proyecto son consistentes',       dim:'Confianza liderazgo'},
@@ -842,7 +914,7 @@ const QUAL_CLUSTERS=[
   {id:'formacion',    name:'Formacion y capacitacion', color:'#E6F4EC',barColor:'#1A7F4B',
    keywords:['formacion','formaci','aprender','aprendizaje','capacitar','competencias','habilidades','conocimiento','tiempo para','entrenamiento','cursos']},
   {id:'inclusion',    name:'Inclusion y alcance',      color:'#FFF5E0',barColor:'#9B6000',
-   keywords:['franquici','campanas','plataforma','incluir','alcance','afecta','mi equipo','nuestro equipo','dentro de nea','parte del']},
+   keywords:['franquici','campanas','plataforma','incluir','alcance','afecta','mi equipo','nuestro equipo','dentro del proyecto','parte del']},
   {id:'incertidumbre',name:'Incertidumbre general',    color:'#F0EAF8',barColor:'#6B3FA0',
    keywords:['incertidumbre','desconocimiento','claridad','cuando','futuro','pregunta','duda','no se','saber','conocer','informacion']},
 ];
@@ -2233,7 +2305,7 @@ async function parseWithSheetJS(file){
       else if(t.includes('capaz de adaptar'))orgCols.push(i);
       else if(t.includes('tiempo y apoyo'))orgCols.push(i);
       else if(t.includes('clara y suficiente'))orgCols.push(i);
-      else if(t.includes('piloto que estamos'))projCols.push(i);
+      else if(t.includes('proyecto que estamos'))projCols.push(i);
       else if(t.includes('beneficios concretos'))projCols.push(i);
       else if(t.includes('dispuesto')&&t.includes('contribuir'))projCols.push(i);
       else if(t.includes('confianza')&&t.includes('ilusion'))projCols.push(i);
@@ -2502,9 +2574,17 @@ function buildMethodologyMatrixHTML(){
     `<div style="font-size:.68rem;color:var(--muted)">* Seguidor Activo si score total &gt; ${MODEL.split_seguidor} &nbsp;|&nbsp; Seguidor Pasivo si score total &le; ${MODEL.split_seguidor}</div>`;
 }
 
-// INIT
+// INIT - gated by auth
 buildDimInputs();
-initSheets().then(()=>loadAll());
+if(checkSession()){
+  document.getElementById('authScreen').style.display='none';
+  injectUserBadge(CURRENT_USER);
+  initSheets().then(()=>loadAll());
+} else {
+  // Show auth screen, wait for login
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('authInput')?.focus();
+}
 </script>
 </body>
 </html>
