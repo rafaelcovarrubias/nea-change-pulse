@@ -1586,13 +1586,14 @@ function refreshSurveyTab(id){
     const combinedNComplete=showCombined?(parseInt(survey.n_complete)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_complete)||0),0):(parseInt(survey.n_complete)||0);
     const combinedNStarted=showCombined?(parseInt(survey.n_started)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_started)||0),0):(parseInt(survey.n_started)||0);
     const combinedNotFin=Math.max(0,combinedNStarted-combinedNComplete);
+    const combinedLabel=showCombined?' · combinado':'';
     distEl.innerHTML=
       (showCombined?`<div style="background:var(--blue-bg);border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:.7rem;color:var(--blue)">
         Vista combinada con ${sibSurveys.map(s=>s.name).join(' + ')} &nbsp;&middot;&nbsp;
         Completas: ${combinedNComplete}/${ORG_TOTAL} (${Math.round(combinedNComplete/ORG_TOTAL*100)}%) &nbsp;&middot;&nbsp;
         Iniciadas: ${combinedNStarted}/${ORG_TOTAL} &nbsp;&middot;&nbsp; Sin completar: ${combinedNotFin}
       </div>`:'')
-      +'<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos${showCombined?" · combinado":""}</div>'+
+      +`<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos${combinedLabel}</div>`+
       Object.values(ARCHETYPES).map(a=>{const n=displayCounts[a.id]||0;const pct=displayResps.length?n/displayResps.length*100:0;
         return`<div class="dist-row"><div class="dist-label"><span class="badge ${a.badgeClass}">${a.name}</span></div><div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${a.distColor}"></div></div><div class="dist-val">${n}</div></div>`;
       }).join('');
@@ -2429,7 +2430,8 @@ async function parseWithSheetJS(file){
     const ws=wb.Sheets[wb.SheetNames[0]];
     const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     if(!data||data.length<3){setStatus('err','Formato no reconocido');return;}
-    const keyRow=data[0],questionRow=data[1],allRows=data.slice(2);
+    const keyRow=data[0]||[],questionRow=data[1]||[],allRows=data.slice(2).filter(row=>row&&row.length>5);
+    console.log('[Parser] keyRow length:',keyRow.length,'questionRow length:',questionRow.length,'allRows:',allRows.length);
     const startedRows=allRows.filter(row=>String(row[3]||'')!=='0'&&row[3]!==undefined&&row[3]!=='');
     const completeRows=allRows.filter(row=>{const f=String(row[5]||'').toLowerCase();const prog=parseFloat(row[3])||0;return f==='true'||f==='1'||prog>=100;});
 
