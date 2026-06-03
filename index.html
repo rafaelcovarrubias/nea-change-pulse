@@ -1016,6 +1016,11 @@ async function loadAll(){
     surveyResponses=parseSheet(sr.data);
     setStatus('ok',`Conectado · ${interviews.length} entrevistas · ${surveys.length} encuestas`);
     updateModelSummary();
+    // Check if any surveys have identical n_complete and n_started (old bug)
+    const brokenSurveys=surveys.filter(s=>s.n_complete===s.n_started&&parseInt(s.n_complete)>0);
+    if(brokenSurveys.length>0){
+      console.warn('Surveys with identical n_complete/n_started (data fix needed):',brokenSurveys.map(s=>s.name));
+    }
     populateFilters();
     renderSurveyList();
   }catch(e){setStatus('err','Error al cargar');console.error(e);}
@@ -2328,104 +2333,92 @@ function detectSurveyFormat(keyRow, questionRow){
                       keyRow.some(k=>String(k||'').includes('Eq Proyecto1_'));
   if(hasMayoKeys) return 'mayo';
 
-  // Format B: Anterior internos - has Q5_1..Q5_13 pattern (13 scoring items)
-  const q5cols = keyRow.filter(k=>String(k||'').match(/Q5_\d+/)).length;
-  if(q5cols >= 10) return 'anterior_int';
-
-  // Format C: Anterior externos - has Q5_1..Q5_11 (11 items, no Q12 area col after Q1)
+  // Count Q5_ scoring columns in key row
+  const q5cols = keyRow.filter(k=>String(k||'').match(/^Q5_\d+$/)).length;
+  // Format B: Anterior internos - 13 Q5 items
+  if(q5cols >= 12) return 'anterior_int';
+  // Format C: Anterior externos - 11 Q5 items
   if(q5cols >= 8) return 'anterior_ext';
 
   return 'unknown';
 }
 
 function scoreRowAnteriorInt(row, keyRow, questionRow){
-  // Internos format: Q5_1(col21) to Q5_12(col33)
-  // Find Q5 columns
-  const q5idx = [];
-  keyRow.forEach((k,i)=>{ if(String(k||'').match(/^Q5_\d+$/)) q5idx.push(i); });
-  q5idx.sort((a,b)=>a-b);
-
-  // Map by question text to dimension
-  const dimMap = {};
-  q5idx.forEach(i=>{
-    const t = String(questionRow[i]||'').toLowerCase();
-    if(t.includes('necesario evolucionar')||t.includes('positivo para')) dimMap.conviccion_a = i;
-    else if(t.includes('entusiasmado')) dimMap.energia_a = i;
-    else if(t.includes('confío en que este proyecto')||t.includes('confianza del equipo')) dimMap.confianza_a = i;
-    else if(t.includes('conozco las herramientas')) dimMap.comprension_a = i;
-    else if(t.includes('domino el uso')) dimMap.capacidad_a = i;
-    else if(t.includes('nuevo ecosistema')) dimMap.conviccion_b = i;
-    else if(t.includes('entiendo lo que')) dimMap.comprension_b = i;
-    else if(t.includes('dispuesto') && t.includes('adaptar')) dimMap.energia_b = i;
-    else if(t.includes('recibiré formación')||t.includes('recibire formacion')) dimMap.soporte_a = i;
-    else if(t.includes('cómodo') && t.includes('aprendiendo')) dimMap.capacidad_b = i;
-    else if(t.includes('necesitaré poco')||t.includes('necesitare poco')) dimMap.capacidad_c = i;
-    else if(t.includes('a quién dirigirme')||t.includes('a quien dirigirme')) dimMap.soporte_b = i;
-    else if(t.includes('escuchado')) dimMap.confianza_b = i;
-  });
-
-  const P = (key) => {
-    const idx = dimMap[key];
-    if(idx===undefined) return null;
-    const v = parseFloat(row[idx]);
-    return isNaN(v) ? null : v;
+  // INTERNOS: 13 Q5 items verified from real data
+  // Q5_1(21)=conviccion, Q5_2(22)=energia, Q5_3(23)=confianza_a
+  // Q5_13(24)=conviccion_b, Q5_4(25)=comprension_a, Q5_5(26)=capacidad_a
+  // Q5_6(27)=comprension_b, Q5_7(28)=energia_b, Q5_8(29)=soporte_a
+  // Q5_9(30)=capacidad_b, Q5_10(31)=capacidad_c, Q5_11(32)=soporte_b, Q5_12(33)=confianza_b
+  
+  // Build Q5 col map from key row: Q5_N -> col index
+  const q5map={};
+  keyRow.forEach((k,i)=>{const m=String(k||'').match(/^Q5_(\d+)$/);if(m)q5map[m[1]]=i;});
+  
+  const P=(qnum)=>{
+    const idx=q5map[String(qnum)];
+    if(idx===undefined)return null;
+    const v=parseFloat(String(row[idx]||'').trim());
+    return isNaN(v)?null:v;
   };
-  const avg = (...keys) => {
-    const vals = keys.map(k=>P(k)).filter(v=>v!==null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  const avg=(...qnums)=>{
+    const vals=qnums.map(P).filter(v=>v!==null&&v>0);
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
   };
 
+  // Question mapping (by Q5_N number):
+  // Q5_1: Considero necesario evolucionar → conviccion
+  // Q5_2: Me siento entusiasmado → energia
+  // Q5_3: Confio en que este proyecto → confianza
+  // Q5_13: Considero que el nuevo ecosistema → conviccion
+  // Q5_4: Conozco las herramientas → comprension
+  // Q5_5: Domino el uso → capacidad
+  // Q5_6: Entiendo lo que implica → comprension
+  // Q5_7: Dispuesto a adaptar → energia
+  // Q5_8: Recibiré formación → soporte
+  // Q5_9: Cómodo aprendiendo → capacidad
+  // Q5_10: Necesitaré poco esfuerzo → capacidad
+  // Q5_11: Sé a quién dirigirme → soporte
+  // Q5_12: Me siento escuchado → confianza
   return {
-    sc_conviccion: avg('conviccion_a','conviccion_b'),
-    sc_energia:    avg('energia_a','energia_b'),
-    sc_confianza:  avg('confianza_a','confianza_b'),
-    sc_comprension:avg('comprension_a','comprension_b'),
-    sc_capacidad:  avg('capacidad_a','capacidad_b','capacidad_c'),
-    sc_soporte:    avg('soporte_a','soporte_b'),
+    sc_conviccion:  avg(1,13),
+    sc_energia:     avg(2,7),
+    sc_confianza:   avg(3,12),
+    sc_comprension: avg(4,6),
+    sc_capacidad:   avg(5,9,10),
+    sc_soporte:     avg(8,11),
   };
 }
 
 function scoreRowAnteriorExt(row, keyRow, questionRow){
-  // Externos format: Q5_1..Q5_11 (no energia direct)
-  const q5idx = [];
-  keyRow.forEach((k,i)=>{ if(String(k||'').match(/^Q5_\d+$/)) q5idx.push(i); });
-  q5idx.sort((a,b)=>a-b);
+  // EXTERNOS: 11 Q5 items verified from real data
+  // Q5_1(19)=conviccion, Q5_2(20)=confianza, Q5_3(21)=comprension
+  // Q5_4(22)=capacidad, Q5_5(23)=conviccion_b, Q5_6(24)=comprension_b
+  // Q5_7(25)=soporte, Q5_8(26)=capacidad_b, Q5_9(27)=capacidad_c
+  // Q5_10(28)=soporte_b, Q5_11(29)=confianza_b
+  // No energia direct -> use conviccion as proxy (Opcion A validated)
 
-  const dimMap = {};
-  q5idx.forEach(i=>{
-    const t = String(questionRow[i]||'').toLowerCase();
-    if(t.includes('positivo para')||t.includes('necesario evolucionar')) dimMap.conviccion_a = i;
-    else if(t.includes('confío en que este proyecto')||t.includes('confianza')) dimMap.confianza_a = i;
-    else if(t.includes('conozco las herramientas')) dimMap.comprension_a = i;
-    else if(t.includes('domino el uso')) dimMap.capacidad_a = i;
-    else if(t.includes('nuevo ecosistema')) dimMap.conviccion_b = i;
-    else if(t.includes('entiendo lo que')) dimMap.comprension_b = i;
-    else if(t.includes('recibiré formación')||t.includes('recibire formacion')) dimMap.soporte_a = i;
-    else if(t.includes('cómodo') && t.includes('aprendiendo')) dimMap.capacidad_b = i;
-    else if(t.includes('necesitaré poco')||t.includes('necesitare poco')) dimMap.capacidad_c = i;
-    else if(t.includes('a quién dirigirme')||t.includes('a quien dirigirme')) dimMap.soporte_b = i;
-    else if(t.includes('escuchado')) dimMap.confianza_b = i;
-  });
+  const q5map={};
+  keyRow.forEach((k,i)=>{const m=String(k||'').match(/^Q5_(\d+)$/);if(m)q5map[m[1]]=i;});
 
-  const P = (key) => {
-    const idx = dimMap[key];
-    if(idx===undefined) return null;
-    const v = parseFloat(row[idx]);
-    return isNaN(v) ? null : v;
+  const P=(qnum)=>{
+    const idx=q5map[String(qnum)];
+    if(idx===undefined)return null;
+    const v=parseFloat(String(row[idx]||'').trim());
+    return isNaN(v)?null:v;
   };
-  const avg = (...keys) => {
-    const vals = keys.map(k=>P(k)).filter(v=>v!==null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  const avg=(...qnums)=>{
+    const vals=qnums.map(P).filter(v=>v!==null&&v>0);
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
   };
 
-  const conv = avg('conviccion_a','conviccion_b');
+  const conv=avg(1,5);
   return {
-    sc_conviccion: conv,
-    sc_energia:    conv, // Opcion A: proxy from conviccion
-    sc_confianza:  avg('confianza_a','confianza_b'),
-    sc_comprension:avg('comprension_a','comprension_b'),
-    sc_capacidad:  avg('capacidad_a','capacidad_b','capacidad_c'),
-    sc_soporte:    avg('soporte_a','soporte_b'),
+    sc_conviccion:  conv,
+    sc_energia:     conv, // Opcion A: proxy from conviccion (no direct energia question)
+    sc_confianza:   avg(2,11),
+    sc_comprension: avg(3,6),
+    sc_capacidad:   avg(4,8,9),
+    sc_soporte:     avg(7,10),
   };
 }
 
