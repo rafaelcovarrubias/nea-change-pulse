@@ -1519,21 +1519,22 @@ function selectSurvey(id){
   const areas=[...new Set(allResps.map(r=>r.area).filter(Boolean))].sort();
   const nComplete=parseInt(survey.n_complete)||0;
   const nStarted=parseInt(survey.n_started)||nComplete;
+  const nTotal=parseInt(survey.n_total)||ORG_TOTAL;
   const nNotFinished=Math.max(0,nStarted-nComplete);
-  const compRate=Math.round(nComplete/ORG_TOTAL*100);
-  const startRate=Math.round(nStarted/ORG_TOTAL*100);
+  const compRate=Math.round(nComplete/nTotal*100);
+  const startRate=Math.round(nStarted/nTotal*100);
   // Step 1: render shell HTML with filters already in DOM
   det.innerHTML=`
     <div style="font-weight:600;font-size:.9rem;margin-bottom:12px">${survey.name} &middot; ${fmtDate(survey.date)}</div>
     <div class="stat-strip s4" style="margin-bottom:14px">
       <div class="stat-box" style="border-top:3px solid var(--sg)">
         <div class="stat-num" style="color:var(--sg)">${compRate}%</div>
-        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nComplete}/${ORG_TOTAL}</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nComplete}/${nTotal}</div>
         <div class="stat-lbl">Respuesta completa</div>
       </div>
       <div class="stat-box" style="border-top:3px solid var(--sa)">
         <div class="stat-num" style="color:var(--sa)">${startRate}%</div>
-        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nStarted}/${ORG_TOTAL}</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nStarted}/${nTotal}</div>
         <div class="stat-lbl">Inicio encuesta</div>
       </div>
       <div class="stat-box" style="border-top:3px solid var(--er)">
@@ -1542,7 +1543,7 @@ function selectSurvey(id){
         <div class="stat-lbl">Iniciadas no completadas</div>
       </div>
       <div class="stat-box" style="border-top:3px solid var(--border)">
-        <div class="stat-num">${ORG_TOTAL}</div>
+        <div class="stat-num">${nTotal}</div>
         <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">universo</div>
         <div class="stat-lbl">Personas en alcance</div>
       </div>
@@ -1585,13 +1586,14 @@ function refreshSurveyTab(id){
     const displayCounts=showCombined?combinedCounts:counts;
     const combinedNComplete=showCombined?(parseInt(survey.n_complete)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_complete)||0),0):(parseInt(survey.n_complete)||0);
     const combinedNStarted=showCombined?(parseInt(survey.n_started)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_started)||0),0):(parseInt(survey.n_started)||0);
+    const combinedNTotal=parseInt(survey.n_total)||ORG_TOTAL;
     const combinedNotFin=Math.max(0,combinedNStarted-combinedNComplete);
     const combinedLabel=showCombined?' · combinado':'';
     distEl.innerHTML=
       (showCombined?`<div style="background:var(--blue-bg);border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:.7rem;color:var(--blue)">
         Vista combinada con ${sibSurveys.map(s=>s.name).join(' + ')} &nbsp;&middot;&nbsp;
-        Completas: ${combinedNComplete}/${ORG_TOTAL} (${Math.round(combinedNComplete/ORG_TOTAL*100)}%) &nbsp;&middot;&nbsp;
-        Iniciadas: ${combinedNStarted}/${ORG_TOTAL} &nbsp;&middot;&nbsp; Sin completar: ${combinedNotFin}
+        Completas: ${combinedNComplete}/${combinedNTotal} (${Math.round(combinedNComplete/combinedNTotal*100)}%) &nbsp;&middot;&nbsp;
+        Iniciadas: ${combinedNStarted}/${combinedNTotal} &nbsp;&middot;&nbsp; Sin completar: ${combinedNotFin}
       </div>`:'')
       +`<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos${combinedLabel}</div>`+
       Object.values(ARCHETYPES).map(a=>{const n=displayCounts[a.id]||0;const pct=displayResps.length?n/displayResps.length*100:0;
@@ -2835,13 +2837,14 @@ function renderComparativa(){const MONO="font-family:'IBM Plex Mono',monospace";
     const{clusters}=clusterResponses(resps);
     const nComplete=grp.surveys.reduce((s,sv)=>s+(parseInt(sv.n_complete)||0),0);
     const nStarted=grp.surveys.reduce((s,sv)=>s+(parseInt(sv.n_started)||0),0);
+    const nTotal=parseInt(grp.surveys[0]?.n_total)||ORG_TOTAL;
     const nNotFin=Math.max(0,nStarted-nComplete);
-    const compRate=Math.round(nComplete/ORG_TOTAL*100);
-    const startRate=Math.round(nStarted/ORG_TOTAL*100);
+    const compRate=Math.round(nComplete/nTotal*100);
+    const startRate=Math.round(nStarted/nTotal*100);
     // Display name: pulse name or combined survey names
     const displayName=grp.name;
-    const sv={name:displayName,date:grp.date,n_complete:nComplete,n_started:nStarted};
-    return{sv,resps,avgW,avgA,avgTotal,dimAvgs,counts,clusters,nComplete,nStarted,nNotFin,compRate,startRate};
+    const sv={name:displayName,date:grp.date,n_complete:nComplete,n_started:nStarted,n_total:nTotal};
+    return{sv,resps,avgW,avgA,avgTotal,dimAvgs,counts,clusters,nComplete,nStarted,nNotFin,nTotal,compRate,startRate};
   }).filter(Boolean);
 
   if(pulseData.length<1){container.innerHTML='<div class="empty-state"><h3>Sin datos para este filtro</h3></div>';return;}
