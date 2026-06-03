@@ -92,6 +92,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .b-status-x{background:#EEE;color:#555;}
 .b-org{background:#E8F0FB;color:#1A5FAB;}
 .b-proj{background:var(--purple-bg);color:var(--purple);}
+.b-ext{background:#E6F4EC;color:#1A7F4B;}
 .b-entrevista{background:#E6F4EC;color:#1A7F4B;}
 .b-encuesta{background:var(--blue-bg);color:var(--blue);}
 
@@ -277,8 +278,9 @@ canvas{display:block;width:100%!important;}
   <div class="tab" onclick="switchTab('surveys')">03 · Encuestas</div>
   <div class="tab" onclick="switchTab('survey-analysis')">04 · Analisis encuesta</div>
   <div class="tab" onclick="switchTab('global')">05 · Global</div>
-  <div class="tab" onclick="switchTab('actions')">06 · Acciones</div>
-  <div class="tab" onclick="switchTab('methodology')">07 · Metodologia</div>
+  <div class="tab" onclick="switchTab('comparativa')">06 · Comparativa</div>
+  <div class="tab" onclick="switchTab('actions')">07 · Acciones</div>
+  <div class="tab" onclick="switchTab('methodology')">08 · Metodologia</div>
 </div>
 
 <main>
@@ -397,7 +399,7 @@ canvas{display:block;width:100%!important;}
     <select class="filter-select" id="sa-survey" onchange="renderSurveyAnalysis()"><option value="">Selecciona una encuesta</option></select>
     <select class="filter-select" id="sa-area" onchange="renderSurveyAnalysis()"><option value="">Todas las areas</option></select>
     <select class="filter-select" id="sa-colectivo" onchange="renderSurveyAnalysis()">
-      <option value="">Todos los colectivos</option><option>Organizacion</option><option>Equipo Proyecto</option>
+      <option value="">Todos los colectivos</option><option value="Org">Organizacion interna</option><option value="Externo">Externo</option><option value="Equipo Proyecto">Equipo de proyecto</option>
     </select>
     <select class="filter-select" id="sa-arch" onchange="renderSurveyAnalysis()">
       <option value="">Todos los arquetipos</option>
@@ -428,7 +430,21 @@ canvas{display:block;width:100%!important;}
   <div id="globalContent"><div class="empty-state"><h3>Sin datos</h3></div></div>
 </div>
 
-<!-- 06 ACCIONES -->
+<!-- 06 COMPARATIVA -->
+<div class="view" id="view-comparativa">
+  <div class="filter-bar">
+    <select class="filter-select" id="cmp-colectivo" onchange="renderComparativa()">
+      <option value="">Todos los colectivos</option>
+      <option value="Org">Organizacion interna</option>
+      <option value="Externo">Externo</option>
+      <option value="Equipo Proyecto">Equipo de proyecto</option>
+    </select>
+    <select class="filter-select" id="cmp-area" onchange="renderComparativa()"><option value="">Todas las areas</option></select>
+  </div>
+  <div id="comparativaContent"><div class="empty-state"><h3>Cargando comparativa...</h3></div></div>
+</div>
+
+<!-- 07 ACCIONES -->
 <div class="view" id="view-actions">
   <div class="filter-bar">
     <button class="btn btn-primary btn-sm" onclick="showActionModal()">+ Nueva accion</button>
@@ -1154,7 +1170,7 @@ function setSelectObj(id,opts,ph){const el=document.getElementById(id);if(!el)re
 
 // TAB SWITCHING
 function switchTab(tab){
-  const tabs=['list','individual','surveys','survey-analysis','global','actions','methodology'];
+  const tabs=['list','individual','surveys','survey-analysis','global','comparativa','actions','methodology'];
   tabs.forEach((t,i)=>{
     document.querySelectorAll('.tab')[i]?.classList.toggle('active',t===tab);
     document.getElementById('view-'+t)?.classList.toggle('active',t===tab);
@@ -1162,6 +1178,7 @@ function switchTab(tab){
   if(tab==='individual'){updatePersonChips();renderIndividual();}
   if(tab==='survey-analysis')renderSurveyAnalysis();
   if(tab==='global')renderGlobal();
+  if(tab==='comparativa')renderComparativa();
   if(tab==='actions')renderActions();
 }
 
@@ -2276,6 +2293,114 @@ function processExcelFile(file){
   document.head.appendChild(s);
 }
 
+// ── SURVEY FORMAT DETECTION ─────────────────────────────
+function detectSurveyFormat(keyRow, questionRow){
+  // Format A: Mayo - has Colectivo1_ and EqProyecto1_ keys
+  const hasMayoKeys = keyRow.some(k=>String(k||'').includes('Colectivo 1_')) ||
+                      keyRow.some(k=>String(k||'').includes('Eq Proyecto1_'));
+  if(hasMayoKeys) return 'mayo';
+
+  // Format B: Anterior internos - has Q5_1..Q5_13 pattern (13 scoring items)
+  const q5cols = keyRow.filter(k=>String(k||'').match(/Q5_\d+/)).length;
+  if(q5cols >= 10) return 'anterior_int';
+
+  // Format C: Anterior externos - has Q5_1..Q5_11 (11 items, no Q12 area col after Q1)
+  if(q5cols >= 8) return 'anterior_ext';
+
+  return 'unknown';
+}
+
+function scoreRowAnteriorInt(row, keyRow, questionRow){
+  // Internos format: Q5_1(col21) to Q5_12(col33)
+  // Find Q5 columns
+  const q5idx = [];
+  keyRow.forEach((k,i)=>{ if(String(k||'').match(/^Q5_\d+$/)) q5idx.push(i); });
+  q5idx.sort((a,b)=>a-b);
+
+  // Map by question text to dimension
+  const dimMap = {};
+  q5idx.forEach(i=>{
+    const t = String(questionRow[i]||'').toLowerCase();
+    if(t.includes('necesario evolucionar')||t.includes('positivo para')) dimMap.conviccion_a = i;
+    else if(t.includes('entusiasmado')) dimMap.energia_a = i;
+    else if(t.includes('confío en que este proyecto')||t.includes('confianza del equipo')) dimMap.confianza_a = i;
+    else if(t.includes('conozco las herramientas')) dimMap.comprension_a = i;
+    else if(t.includes('domino el uso')) dimMap.capacidad_a = i;
+    else if(t.includes('nuevo ecosistema')) dimMap.conviccion_b = i;
+    else if(t.includes('entiendo lo que')) dimMap.comprension_b = i;
+    else if(t.includes('dispuesto') && t.includes('adaptar')) dimMap.energia_b = i;
+    else if(t.includes('recibiré formación')||t.includes('recibire formacion')) dimMap.soporte_a = i;
+    else if(t.includes('cómodo') && t.includes('aprendiendo')) dimMap.capacidad_b = i;
+    else if(t.includes('necesitaré poco')||t.includes('necesitare poco')) dimMap.capacidad_c = i;
+    else if(t.includes('a quién dirigirme')||t.includes('a quien dirigirme')) dimMap.soporte_b = i;
+    else if(t.includes('escuchado')) dimMap.confianza_b = i;
+  });
+
+  const P = (key) => {
+    const idx = dimMap[key];
+    if(idx===undefined) return null;
+    const v = parseFloat(row[idx]);
+    return isNaN(v) ? null : v;
+  };
+  const avg = (...keys) => {
+    const vals = keys.map(k=>P(k)).filter(v=>v!==null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  };
+
+  return {
+    sc_conviccion: avg('conviccion_a','conviccion_b'),
+    sc_energia:    avg('energia_a','energia_b'),
+    sc_confianza:  avg('confianza_a','confianza_b'),
+    sc_comprension:avg('comprension_a','comprension_b'),
+    sc_capacidad:  avg('capacidad_a','capacidad_b','capacidad_c'),
+    sc_soporte:    avg('soporte_a','soporte_b'),
+  };
+}
+
+function scoreRowAnteriorExt(row, keyRow, questionRow){
+  // Externos format: Q5_1..Q5_11 (no energia direct)
+  const q5idx = [];
+  keyRow.forEach((k,i)=>{ if(String(k||'').match(/^Q5_\d+$/)) q5idx.push(i); });
+  q5idx.sort((a,b)=>a-b);
+
+  const dimMap = {};
+  q5idx.forEach(i=>{
+    const t = String(questionRow[i]||'').toLowerCase();
+    if(t.includes('positivo para')||t.includes('necesario evolucionar')) dimMap.conviccion_a = i;
+    else if(t.includes('confío en que este proyecto')||t.includes('confianza')) dimMap.confianza_a = i;
+    else if(t.includes('conozco las herramientas')) dimMap.comprension_a = i;
+    else if(t.includes('domino el uso')) dimMap.capacidad_a = i;
+    else if(t.includes('nuevo ecosistema')) dimMap.conviccion_b = i;
+    else if(t.includes('entiendo lo que')) dimMap.comprension_b = i;
+    else if(t.includes('recibiré formación')||t.includes('recibire formacion')) dimMap.soporte_a = i;
+    else if(t.includes('cómodo') && t.includes('aprendiendo')) dimMap.capacidad_b = i;
+    else if(t.includes('necesitaré poco')||t.includes('necesitare poco')) dimMap.capacidad_c = i;
+    else if(t.includes('a quién dirigirme')||t.includes('a quien dirigirme')) dimMap.soporte_b = i;
+    else if(t.includes('escuchado')) dimMap.confianza_b = i;
+  });
+
+  const P = (key) => {
+    const idx = dimMap[key];
+    if(idx===undefined) return null;
+    const v = parseFloat(row[idx]);
+    return isNaN(v) ? null : v;
+  };
+  const avg = (...keys) => {
+    const vals = keys.map(k=>P(k)).filter(v=>v!==null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  };
+
+  const conv = avg('conviccion_a','conviccion_b');
+  return {
+    sc_conviccion: conv,
+    sc_energia:    conv, // Opcion A: proxy from conviccion
+    sc_confianza:  avg('confianza_a','confianza_b'),
+    sc_comprension:avg('comprension_a','comprension_b'),
+    sc_capacidad:  avg('capacidad_a','capacidad_b','capacidad_c'),
+    sc_soporte:    avg('soporte_a','soporte_b'),
+  };
+}
+
 async function parseWithSheetJS(file){
   try{
     const buf=await file.arrayBuffer();
@@ -2572,6 +2697,208 @@ function buildMethodologyMatrixHTML(){
     }).join('')+
     '</tbody></table>'+
     `<div style="font-size:.68rem;color:var(--muted)">* Seguidor Activo si score total &gt; ${MODEL.split_seguidor} &nbsp;|&nbsp; Seguidor Pasivo si score total &le; ${MODEL.split_seguidor}</div>`;
+}
+
+// ── COMPARATIVA ──────────────────────────────────────────
+function renderComparativa(){const MONO="font-family:'IBM Plex Mono',monospace";
+  const container=document.getElementById('comparativaContent');
+  if(!container)return;
+  const colF=document.getElementById('cmp-colectivo')?.value||'';
+  const areaF=document.getElementById('cmp-area')?.value||'';
+
+  // Group surveys by pulse - sort by date
+  const surveysByPulse=surveys.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(surveysByPulse.length<1){container.innerHTML='<div class="empty-state"><h3>Se necesitan al menos 2 encuestas cargadas para la comparativa</h3></div>';return;}
+
+  // Build pulse data points
+  const pulseData=surveysByPulse.map(sv=>{
+    let resps=surveyResponses.filter(r=>r.survey_id===sv.id);
+    if(colF)resps=resps.filter(r=>r.colectivo===colF);
+    if(areaF)resps=resps.filter(r=>r.area===areaF);
+    if(!resps.length)return null;
+    const avgW=resps.reduce((s,r)=>s+wScore(r),0)/resps.length;
+    const avgA=resps.reduce((s,r)=>s+aScore(r),0)/resps.length;
+    const avgTotal=(avgW+avgA)/2;
+    const dimAvgs=DIMS.map(d=>({key:d.key,label:d.label,avg:resps.reduce((s,r)=>s+sc(r,d.key),0)/resps.length}));
+    const counts={};Object.keys(ARCHETYPES).forEach(k=>counts[k]=0);
+    resps.forEach(r=>counts[classifyArchetype(r).id]=(counts[classifyArchetype(r).id]||0)+1);
+    const{clusters}=clusterResponses(resps);
+    const nComplete=parseInt(sv.n_complete)||0;
+    const nStarted=parseInt(sv.n_started)||nComplete;
+    const compRate=Math.round(nComplete/ORG_TOTAL*100);
+    const startRate=Math.round(nStarted/ORG_TOTAL*100);
+    return{sv,resps,avgW,avgA,avgTotal,dimAvgs,counts,clusters,nComplete,nStarted,compRate,startRate};
+  }).filter(Boolean);
+
+  if(pulseData.length<1){container.innerHTML='<div class="empty-state"><h3>Sin datos para este filtro</h3></div>';return;}
+
+  // Update area filter
+  const allAreas=[...new Set(surveyResponses.map(r=>r.area).filter(Boolean))].sort();
+  const areaEl=document.getElementById('cmp-area');
+  if(areaEl){const cur=areaEl.value;areaEl.innerHTML='<option value="">Todas las areas</option>'+allAreas.map(a=>`<option>${a}</option>`).join('');areaEl.value=cur;}
+
+  // ── SECTION 1: Participacion ──
+  const partHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:10px">
+      <div class="flow-num">1</div><div class="flow-label">Evolucion de participacion</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr repeat(${pulseData.length},1fr);gap:8px;margin-bottom:6px">
+        <div style="font-size:.58rem;${MONO};text-transform:uppercase;color:var(--muted)">Metrica</div>
+        ${pulseData.map(p=>`<div style="font-size:.62rem;font-weight:600;text-align:center">${p.sv.name}<br><span style="${MONO};font-size:.56rem;color:var(--muted);font-weight:400">${fmtDate(p.sv.date)}</span></div>`).join('')}
+      </div>
+      ${[
+        ['Completas',p=>`<span style="color:${p.compRate>=60?'var(--sg)':p.compRate>=40?'var(--sa)':'var(--sr)'};font-weight:600">${p.compRate}%</span> (${p.nComplete})`],
+        ['Iniciadas',p=>`${p.startRate}% (${p.nStarted})`],
+        ['Universo',p=>`${ORG_TOTAL}`],
+      ].map(([label,fn])=>`<div style="display:grid;grid-template-columns:1fr repeat(${pulseData.length},1fr);gap:8px;padding:7px 0;border-top:1px solid var(--bg-mid);align-items:center">
+        <div style="font-size:.7rem;color:var(--ink-soft)">${label}</div>
+        ${pulseData.map(p=>`<div style="text-align:center;font-size:.72rem;${MONO}">${fn(p)}</div>`).join('')}
+      </div>`).join('')}
+    </div>`;
+
+  // ── SECTION 2: Scores W/A/Total ──
+  const delta=(a,b)=>{const d=b-a;return`<span style="font-size:.64rem;${MONO};color:${Math.abs(d)<0.1?'var(--muted)':d>0?'var(--sg)':'var(--sr)'}">${d>0?'+':''}${d.toFixed(2)}</span>`;};
+  const scoresHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:10px">
+      <div class="flow-num">2</div><div class="flow-label">Evolucion de scores W / A / Total</div>
+    </div>
+    <div class="agg-grid" style="margin-bottom:12px">
+      <div class="card">
+        <div class="card-title">Scores globales por pulso</div>
+        ${['W · Willingness','A · Ability','Total'].map((label,li)=>{
+          const getter=[p=>p.avgW,p=>p.avgA,p=>p.avgTotal][li];
+          return`<div style="margin-bottom:10px">
+            <div style="font-size:.7rem;font-weight:500;margin-bottom:4px">${label}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${pulseData.map((p,i)=>`<div style="text-align:center;padding:8px 12px;background:var(--bg);border-radius:var(--r);border-top:2px solid ${getBarColor(getter(p))}">
+                <div style="font-size:.6rem;${MONO};color:var(--muted);margin-bottom:3px">${p.sv.name}</div>
+                <div style="font-size:1.1rem;font-weight:300;color:${getBarColor(getter(p))}">${getter(p).toFixed(2)}</div>
+                ${i>0?delta(getter(pulseData[i-1]),getter(p)):''}
+              </div>`).join('<div style="color:var(--muted);font-size:1rem">→</div>')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">Radar comparativo</div>
+        <canvas id="cmpRadar" style="width:100%;max-height:260px"></canvas>
+      </div>
+    </div>`;
+
+  // ── SECTION 3: Dimensiones ──
+  const dimsHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:10px">
+      <div class="flow-num">3</div><div class="flow-label">Evolucion por dimension <span style="font-size:.6rem;font-weight:400;color:var(--muted)">(comparacion orientativa — instrumentos distintos entre pulsos)</span></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:140px repeat(${pulseData.length},1fr) ${pulseData.length>1?'60px':''};gap:8px;margin-bottom:8px">
+        <div style="font-size:.58rem;${MONO};text-transform:uppercase;color:var(--muted)">Dimension</div>
+        ${pulseData.map(p=>`<div style="font-size:.62rem;font-weight:600;text-align:center">${p.sv.name}</div>`).join('')}
+        ${pulseData.length>1?'<div style="font-size:.58rem;${MONO};text-transform:uppercase;color:var(--muted);text-align:center">Delta</div>':''}
+      </div>
+      ${DIMS.map(d=>{
+        const axColor=DIMS_W.find(dw=>dw.key===d.key)?'var(--sg)':'var(--blue)';
+        const vals=pulseData.map(p=>{const dim=p.dimAvgs.find(da=>da.key===d.key);return dim?dim.avg:0;});
+        const lastDelta=vals.length>1?vals[vals.length-1]-vals[vals.length-2]:null;
+        return`<div style="display:grid;grid-template-columns:140px repeat(${pulseData.length},1fr) ${pulseData.length>1?'60px':''};gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--bg-mid)">
+          <div style="font-size:.7rem;font-weight:500;color:var(--ink-soft)">${d.label}</div>
+          ${vals.map((v,i)=>{const c=getHeatColor(v);return`<div style="text-align:center;padding:3px 6px;border-radius:2px;background:${c.bg};color:${c.fg};${MONO};font-size:.72rem;font-weight:600">${v.toFixed(2)}</div>`;}).join('')}
+          ${lastDelta!==null?`<div style="text-align:center;${MONO};font-size:.68rem;font-weight:600;color:${Math.abs(lastDelta)<0.1?'var(--muted)':lastDelta>0?'var(--sg)':'var(--sr)'}">${lastDelta>0?'+':''}${lastDelta.toFixed(2)}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ── SECTION 4: Arquetipos ──
+  const archHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:10px">
+      <div class="flow-num">4</div><div class="flow-label">Evolucion de arquetipos</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:150px repeat(${pulseData.length},1fr);gap:8px;margin-bottom:8px">
+        <div style="font-size:.58rem;${MONO};text-transform:uppercase;color:var(--muted)">Arquetipo</div>
+        ${pulseData.map(p=>`<div style="font-size:.62rem;font-weight:600;text-align:center">${p.sv.name}</div>`).join('')}
+      </div>
+      ${Object.values(ARCHETYPES).map(a=>{
+        const vals=pulseData.map(p=>({n:p.counts[a.id]||0,pct:p.resps.length?Math.round((p.counts[a.id]||0)/p.resps.length*100):0}));
+        const lastDelta=vals.length>1?vals[vals.length-1].pct-vals[vals.length-2].pct:null;
+        return`<div style="display:grid;grid-template-columns:150px repeat(${pulseData.length},1fr);gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--bg-mid)">
+          <div><span class="badge ${a.badgeClass}">${a.name}</span></div>
+          ${vals.map(v=>`<div style="text-align:center">
+            <div style="${MONO};font-size:.78rem;font-weight:600">${v.n}</div>
+            <div class="bar-track" style="margin-top:3px"><div class="bar-fill" style="width:${v.pct}%;background:${a.distColor}"></div></div>
+            <div style="font-size:.6rem;color:var(--muted);margin-top:2px">${v.pct}%</div>
+          </div>`).join('')}
+          ${lastDelta!==null&&lastDelta!==0?`<div style="grid-column:${pulseData.length+2};${MONO};font-size:.64rem;font-weight:600;color:${lastDelta>0?'var(--sg)':'var(--sr)'}">${lastDelta>0?'+':''}${lastDelta}pp</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ── SECTION 5: Cualitativo ──
+  const qualHTML=`
+    <div class="flow-header flow-result" style="margin-bottom:10px">
+      <div class="flow-num">5</div><div class="flow-label">Evolucion de inquietudes cualitativas</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(${pulseData.length},1fr);gap:12px;margin-bottom:12px">
+      ${pulseData.map(p=>`<div class="card">
+        <div class="card-title" style="margin-bottom:10px">${p.sv.name} · ${fmtDate(p.sv.date)}</div>
+        ${p.clusters.length?p.clusters.slice(0,4).map(cl=>`<div style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:.72rem;font-weight:500">${cl.name}</div>
+            <div style="${MONO};font-size:.64rem;color:var(--muted)">${cl.pct}%</div>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${cl.pct}%;background:${cl.barColor}"></div></div>
+          ${cl.quotes[0]?`<div class="quote-block" style="font-size:.66rem;margin-top:4px">${cl.quotes[0]}</div>`:''}
+        </div>`).join(''):'<div style="font-size:.72rem;color:var(--muted)">Sin respuestas abiertas.</div>'}
+      </div>`).join('')}
+    </div>`;
+
+  // ── SECTION 6: Lectura ejecutiva ──
+  const firstP=pulseData[0],lastP=pulseData[pulseData.length-1];
+  const deltaTotal=lastP.avgTotal-firstP.avgTotal;
+  const deltaW=lastP.avgW-firstP.avgW;
+  const deltaA=lastP.avgA-firstP.avgA;
+  const bestDim=DIMS.map(d=>{const f=firstP.dimAvgs.find(da=>da.key===d.key)?.avg||0;const l=lastP.dimAvgs.find(da=>da.key===d.key)?.avg||0;return{label:d.label,delta:l-f};}).sort((a,b)=>b.delta-a.delta)[0];
+  const worstDim=DIMS.map(d=>{const f=firstP.dimAvgs.find(da=>da.key===d.key)?.avg||0;const l=lastP.dimAvgs.find(da=>da.key===d.key)?.avg||0;return{label:d.label,delta:l-f};}).sort((a,b)=>a.delta-b.delta)[0];
+  const topClusterFirst=firstP.clusters[0]?.name||'—';
+  const topClusterLast=lastP.clusters[0]?.name||'—';
+  const clusterSame=topClusterFirst===topClusterLast;
+
+  const execText=`Entre ${firstP.sv.name} (${fmtDate(firstP.sv.date)}) y ${lastP.sv.name} (${fmtDate(lastP.sv.date)}), el score global ${Math.abs(deltaTotal)<0.1?'se mantiene estable':deltaTotal>0?'mejora':'empeora'} en ${Math.abs(deltaTotal).toFixed(2)} puntos (${firstP.avgTotal.toFixed(2)} → ${lastP.avgTotal.toFixed(2)}). `+
+    `La Willingness ${Math.abs(deltaW)<0.1?'se mantiene':deltaW>0?'mejora':'cae'} (${deltaW>0?'+':''}${deltaW.toFixed(2)}) y la Ability ${Math.abs(deltaA)<0.1?'se mantiene':deltaA>0?'mejora':'cae'} (${deltaA>0?'+':''}${deltaA.toFixed(2)}). `+
+    (pulseData.length>1?`La dimension con mayor ${bestDim.delta>=0?'mejora':'caida'} es ${bestDim.label} (${bestDim.delta>0?'+':''}${bestDim.delta.toFixed(2)})`+(worstDim.delta<0?` y la de mayor caida es ${worstDim.label} (${worstDim.delta.toFixed(2)})`:'')+'. ':'')+
+    (clusterSame?`La principal inquietud cualitativa se mantiene: "${topClusterFirst}".`:`La principal inquietud pasa de "${topClusterFirst}" a "${topClusterLast}" entre pulsos.`);
+
+  const execHTML=`
+    <div class="flow-header flow-concl" style="margin-bottom:10px">
+      <div class="flow-num">6</div><div class="flow-label">Lectura ejecutiva</div>
+    </div>
+    <div class="narrative-block" style="margin-bottom:16px">
+      <div class="narrative-tag">${firstP.sv.name} → ${lastP.sv.name} · ${pulseData.length} pulsos comparados</div>
+      <div class="narrative-text">"${execText}"</div>
+    </div>`;
+
+  container.innerHTML = partHTML + scoresHTML + dimsHTML + archHTML + qualHTML + execHTML;
+
+  // Radar chart
+  destroyChart('cmpRadar');
+  const colors=['#E2001A','#1A5FAB','#2BA86A','#6B3FA0','#D4A017'];
+  charts['cmpRadar']=new Chart(document.getElementById('cmpRadar').getContext('2d'),{
+    type:'radar',
+    data:{
+      labels:DIMS.map(d=>d.label),
+      datasets:pulseData.map((p,i)=>({
+        label:p.sv.name,
+        data:DIMS.map(d=>p.dimAvgs.find(da=>da.key===d.key)?.avg||0),
+        backgroundColor:colors[i]+'15',
+        borderColor:colors[i],
+        borderWidth:2,
+        pointBackgroundColor:colors[i],
+        pointRadius:3,
+      }))
+    },
+    options:{responsive:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:8},color:'#AAA'},grid:{color:'#EEE'},angleLines:{color:'#EEE'},pointLabels:{font:{size:9,family:'IBM Plex Sans'},color:'#1A1A1A'}}},plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:8}}}}
+  });
 }
 
 // INIT - gated by auth
