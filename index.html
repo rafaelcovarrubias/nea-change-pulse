@@ -777,6 +777,9 @@ canvas{display:block;width:100%!important;}
       <div><div class="field-label">Facilitador</div><input class="field-input" id="sm-facilitator"></div>
     </div>
     <div id="sm-preview" style="background:var(--bg);padding:10px;border-radius:var(--r);font-size:.74rem;color:var(--ink-soft);margin-bottom:12px"></div>
+    <div style="margin-bottom:10px;padding:10px;background:var(--blue-bg);border-radius:var(--r);font-size:.72rem;color:var(--blue)">
+      <strong>¿Combinar con otra encuesta del mismo pulso?</strong> Si cargas internos y externos por separado, puedes combinarlos en una sola encuesta. Guarda primero este archivo y luego carga el segundo indicando que pertenece al mismo pulso — se combinaran automaticamente en los analisis.
+    </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="saveSurvey()">Guardar en Sheet</button>
       <button class="btn btn-ghost" onclick="hideSurveyModal()">Cancelar</button>
@@ -1511,25 +1514,31 @@ function selectSurvey(id){
   const areas=[...new Set(allResps.map(r=>r.area).filter(Boolean))].sort();
   const nComplete=parseInt(survey.n_complete)||0;
   const nStarted=parseInt(survey.n_started)||nComplete;
+  const nNotFinished=Math.max(0,nStarted-nComplete);
   const compRate=Math.round(nComplete/ORG_TOTAL*100);
   const startRate=Math.round(nStarted/ORG_TOTAL*100);
   // Step 1: render shell HTML with filters already in DOM
   det.innerHTML=`
     <div style="font-weight:600;font-size:.9rem;margin-bottom:12px">${survey.name} &middot; ${fmtDate(survey.date)}</div>
-    <div class="stat-strip s3" style="margin-bottom:14px">
+    <div class="stat-strip s4" style="margin-bottom:14px">
       <div class="stat-box" style="border-top:3px solid var(--sg)">
         <div class="stat-num" style="color:var(--sg)">${compRate}%</div>
-        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nComplete}/${ORG_TOTAL}</div>
-        <div class="stat-lbl">Tasa respuesta completa</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nComplete}/${ORG_TOTAL}</div>
+        <div class="stat-lbl">Respuesta completa</div>
       </div>
       <div class="stat-box" style="border-top:3px solid var(--sa)">
         <div class="stat-num" style="color:var(--sa)">${startRate}%</div>
-        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nStarted}/${ORG_TOTAL}</div>
-        <div class="stat-lbl">Tasa inicio encuesta</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">${nStarted}/${ORG_TOTAL}</div>
+        <div class="stat-lbl">Inicio encuesta</div>
+      </div>
+      <div class="stat-box" style="border-top:3px solid var(--er)">
+        <div class="stat-num" style="color:var(--er)">${nNotFinished}</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">sin completar</div>
+        <div class="stat-lbl">Iniciadas no completadas</div>
       </div>
       <div class="stat-box" style="border-top:3px solid var(--border)">
         <div class="stat-num">${ORG_TOTAL}</div>
-        <div style="font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:3px">universo</div>
+        <div style="font-size:.9rem;font-weight:300;color:var(--muted);margin-bottom:3px">universo</div>
         <div class="stat-lbl">Personas en alcance</div>
       </div>
     </div>
@@ -1557,10 +1566,29 @@ function refreshSurveyTab(id){
   // Arch distribution (always on full set)
   const counts={};Object.keys(ARCHETYPES).forEach(k=>counts[k]=0);
   allResps.forEach(r=>{const k=classifyArchetype(r).id;counts[k]=(counts[k]||0)+1;});
+  // Check if other surveys share same pulse - show combined note
+  const sibSurveys=survey.pulse_id?surveys.filter(s=>s.pulse_id===survey.pulse_id&&s.id!==survey.id):[];
+  const sibResps=sibSurveys.flatMap(s=>surveyResponses.filter(r=>r.survey_id===s.id));
+  const allPulseResps=[...allResps,...sibResps];
+  const combinedCounts={};Object.keys(ARCHETYPES).forEach(k=>combinedCounts[k]=0);
+  allPulseResps.forEach(r=>{const k=classifyArchetype(r).id;combinedCounts[k]=(combinedCounts[k]||0)+1;});
+
   const distEl=document.getElementById('surveyArchDist');
   if(distEl){
-    distEl.innerHTML='<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos</div>'+
-      Object.values(ARCHETYPES).map(a=>{const n=counts[a.id]||0;const pct=allResps.length?n/allResps.length*100:0;
+    const showCombined=sibSurveys.length>0;
+    const displayResps=showCombined?allPulseResps:allResps;
+    const displayCounts=showCombined?combinedCounts:counts;
+    const combinedNComplete=showCombined?(parseInt(survey.n_complete)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_complete)||0),0):(parseInt(survey.n_complete)||0);
+    const combinedNStarted=showCombined?(parseInt(survey.n_started)||0)+sibSurveys.reduce((s,sv)=>s+(parseInt(sv.n_started)||0),0):(parseInt(survey.n_started)||0);
+    const combinedNotFin=Math.max(0,combinedNStarted-combinedNComplete);
+    distEl.innerHTML=
+      (showCombined?`<div style="background:var(--blue-bg);border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:.7rem;color:var(--blue)">
+        Vista combinada con ${sibSurveys.map(s=>s.name).join(' + ')} &nbsp;&middot;&nbsp;
+        Completas: ${combinedNComplete}/${ORG_TOTAL} (${Math.round(combinedNComplete/ORG_TOTAL*100)}%) &nbsp;&middot;&nbsp;
+        Iniciadas: ${combinedNStarted}/${ORG_TOTAL} &nbsp;&middot;&nbsp; Sin completar: ${combinedNotFin}
+      </div>`:'')
+      +'<div class="card-title" style="margin-bottom:8px">Distribucion de arquetipos${showCombined?" · combinado":""}</div>'+
+      Object.values(ARCHETYPES).map(a=>{const n=displayCounts[a.id]||0;const pct=displayResps.length?n/displayResps.length*100:0;
         return`<div class="dist-row"><div class="dist-label"><span class="badge ${a.badgeClass}">${a.name}</span></div><div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${a.distColor}"></div></div><div class="dist-val">${n}</div></div>`;
       }).join('');
   }
@@ -2473,7 +2501,7 @@ async function parseWithSheetJS(file){
       return{colectivo,area,arch,open_q1:open1,open_q2:open2,...scores};
     }).filter(r=>r.sc_comprension||r.sc_energia||r.sc_conviccion);
 
-    pendingSurveyData={file:file.name,responses:parsed,nTotal:ORG_TOTAL,nStarted:startedRows.length||completeRows.length,nComplete:completeRows.length};
+    pendingSurveyData={file:file.name,responses:parsed,nTotal:ORG_TOTAL,nStarted:startedRows.length,nComplete:completeRows.length,nSent:allRows.length};
     document.getElementById('sm-name').value=file.name.replace(/\.xlsx$/i,'');
     document.getElementById('sm-date').value=new Date().toISOString().split('T')[0];
     setSelectObj('sm-pulse',pulses.map(p=>({v:p.id,l:p.name})),'Sin pulso');
@@ -2496,7 +2524,9 @@ async function saveSurvey(){
   const id=Date.now().toString(36);
   const surveyRow=[id,name,document.getElementById('sm-date').value,document.getElementById('sm-pulse').value,
     document.getElementById('sm-facilitator').value.trim(),
-    pendingSurveyData.nTotal,pendingSurveyData.nStarted||pendingSurveyData.nComplete,pendingSurveyData.nComplete,
+    pendingSurveyData.nTotal,   // ORG_TOTAL (176)
+    pendingSurveyData.nStarted, // rows with Progress>0
+    pendingSurveyData.nComplete,// rows with Finished=True
     '[]','',new Date().toISOString().split('T')[0]];
   try{
     await scriptGet({action:'append',sheet:'Surveys',row:surveyRow.join('||')});
@@ -2707,12 +2737,22 @@ function renderComparativa(){const MONO="font-family:'IBM Plex Mono',monospace";
   const areaF=document.getElementById('cmp-area')?.value||'';
 
   // Group surveys by pulse - sort by date
-  const surveysByPulse=surveys.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  // Group surveys by pulse_id, combine responses within same pulse
+  const pulseGroups={};
+  surveys.forEach(sv=>{
+    const key=sv.pulse_id||sv.id; // group by pulse, or by self if no pulse
+    if(!pulseGroups[key]) pulseGroups[key]={surveys:[],date:sv.date,name:pulseName(sv.pulse_id)||sv.name};
+    pulseGroups[key].surveys.push(sv);
+    if(sv.date<pulseGroups[key].date) pulseGroups[key].date=sv.date;
+  });
+  const surveysByPulse=Object.values(pulseGroups).sort((a,b)=>a.date.localeCompare(b.date));
   if(surveysByPulse.length<1){container.innerHTML='<div class="empty-state"><h3>Se necesitan al menos 2 encuestas cargadas para la comparativa</h3></div>';return;}
 
   // Build pulse data points
-  const pulseData=surveysByPulse.map(sv=>{
-    let resps=surveyResponses.filter(r=>r.survey_id===sv.id);
+  const pulseData=surveysByPulse.map(grp=>{
+    // Combine all surveys in this pulse group
+    const surveyIds=grp.surveys.map(sv=>sv.id);
+    let resps=surveyResponses.filter(r=>surveyIds.includes(r.survey_id));
     if(colF)resps=resps.filter(r=>r.colectivo===colF);
     if(areaF)resps=resps.filter(r=>r.area===areaF);
     if(!resps.length)return null;
@@ -2723,11 +2763,15 @@ function renderComparativa(){const MONO="font-family:'IBM Plex Mono',monospace";
     const counts={};Object.keys(ARCHETYPES).forEach(k=>counts[k]=0);
     resps.forEach(r=>counts[classifyArchetype(r).id]=(counts[classifyArchetype(r).id]||0)+1);
     const{clusters}=clusterResponses(resps);
-    const nComplete=parseInt(sv.n_complete)||0;
-    const nStarted=parseInt(sv.n_started)||nComplete;
+    const nComplete=grp.surveys.reduce((s,sv)=>s+(parseInt(sv.n_complete)||0),0);
+    const nStarted=grp.surveys.reduce((s,sv)=>s+(parseInt(sv.n_started)||0),0);
+    const nNotFin=Math.max(0,nStarted-nComplete);
     const compRate=Math.round(nComplete/ORG_TOTAL*100);
     const startRate=Math.round(nStarted/ORG_TOTAL*100);
-    return{sv,resps,avgW,avgA,avgTotal,dimAvgs,counts,clusters,nComplete,nStarted,compRate,startRate};
+    // Display name: pulse name or combined survey names
+    const displayName=grp.name;
+    const sv={name:displayName,date:grp.date,n_complete:nComplete,n_started:nStarted};
+    return{sv,resps,avgW,avgA,avgTotal,dimAvgs,counts,clusters,nComplete,nStarted,nNotFin,compRate,startRate};
   }).filter(Boolean);
 
   if(pulseData.length<1){container.innerHTML='<div class="empty-state"><h3>Sin datos para este filtro</h3></div>';return;}
