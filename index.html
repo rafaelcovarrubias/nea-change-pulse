@@ -2430,85 +2430,160 @@ async function parseWithSheetJS(file){
     const ws=wb.Sheets[wb.SheetNames[0]];
     const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     if(!data||data.length<3){setStatus('err','Formato no reconocido');return;}
-    const keyRow=data[0]||[],questionRow=data[1]||[],allRows=data.slice(2).filter(row=>row&&row.length>5);
-    console.log('[Parser] keyRow length:',keyRow.length,'questionRow length:',questionRow.length,'allRows:',allRows.length);
-    const startedRows=allRows.filter(row=>String(row[3]||'')!=='0'&&row[3]!==undefined&&row[3]!=='');
-    const completeRows=allRows.filter(row=>{const f=String(row[5]||'').toLowerCase();const prog=parseFloat(row[3])||0;return f==='true'||f==='1'||prog>=100;});
 
-    let isProjCol=-1,areaCol=-1;
-    questionRow.forEach((cell,i)=>{
-      const t=String(cell).toLowerCase();
-      if(t.includes('perteneces al equipo de proyecto'))isProjCol=i;
-      if(t.includes('a que equipo perteneces')||t.includes('equipo perteneces'))areaCol=i;
+    const keyRow=data[0]||[];
+    const questionRow=data[1]||[];
+    const allRows=data.slice(2).filter(row=>row&&row.length>5);
+
+    // Detect Finished and Progress columns by scanning key row
+    let finishedCol=6,progressCol=4;
+    keyRow.forEach((cell,i)=>{
+      const t=String(cell||'').trim().toLowerCase();
+      if(t==='finished') finishedCol=i;
+      if(t==='progress') progressCol=i;
     });
 
-    let orgCols=[],projCols=[],openOrgCol=-1,openOrg2Col=-1,openProjCol=-1;
-    questionRow.forEach((cell,i)=>{
-      const t=String(cell).toLowerCase();
-      if(t.includes('entiendo por qu'))orgCols.push(i);
-      else if(t.includes('idea general'))orgCols.push(i);
-      else if(t.includes('actitud abierta'))orgCols.push(i);
-      else if(t.includes('tranquilo')&&t.includes('confiado'))orgCols.push(i);
-      else if(t.includes('podre adquirir'))orgCols.push(i);
-      else if(t.includes('capaz de adaptar'))orgCols.push(i);
-      else if(t.includes('tiempo y apoyo'))orgCols.push(i);
-      else if(t.includes('clara y suficiente'))orgCols.push(i);
-      else if(t.includes('proyecto que estamos'))projCols.push(i);
-      else if(t.includes('beneficios concretos'))projCols.push(i);
-      else if(t.includes('dispuesto')&&t.includes('contribuir'))projCols.push(i);
-      else if(t.includes('confianza')&&t.includes('ilusion'))projCols.push(i);
-      else if(t.includes('conocimiento')&&t.includes('piloto'))projCols.push(i);
-      else if(t.includes('seguro')&&t.includes('cambiar'))projCols.push(i);
-      else if(t.includes('tiempo necesario')&&t.includes('dedicar'))projCols.push(i);
-      else if(t.includes('acompanamiento')&&t.includes('consistentes'))projCols.push(i);
-      if(t.includes('necesidades, preocupaciones'))openOrgCol=i;
-      if(t.includes('aspectos clave'))openProjCol=i;
-      if(t.includes('claro a quien'))openOrg2Col=i;
-    });
+    const isComplete=(row)=>{
+      const prog=parseFloat(String(row[progressCol]||'0').trim());
+      if(!isNaN(prog)&&prog>=100) return true;
+      const f=row[finishedCol];
+      if(f===true||f===1) return true;
+      if(typeof f==='string'&&f.trim().toLowerCase()==='true') return true;
+      return false;
+    };
+    const isStarted=(row)=>{
+      const prog=parseFloat(String(row[progressCol]||'0').trim());
+      if(!isNaN(prog)&&prog>0) return true;
+      const f=row[finishedCol];
+      if(f===true||f===1) return true;
+      if(typeof f==='string'&&f.trim().toLowerCase()==='true') return true;
+      return false;
+    };
 
-    if(orgCols.length<8){orgCols=[];projCols=[];keyRow.forEach((cell,i)=>{const k=String(cell||'');if(k.match(/Colectivo 1_\d/))orgCols.push(i);if(k.match(/Eq Proyecto1_\d/))projCols.push(i);});}
+    const completeRows=allRows.filter(isComplete);
+    const startedRows=allRows.filter(isStarted);
+    console.log('[Parser] allRows:',allRows.length,'complete:',completeRows.length,'started:',startedRows.length,'finCol:',finishedCol,'progCol:',progressCol);
 
-    const parsed=completeRows.map(row=>{
-      const isProjVal=String(row[isProjCol]||'').toLowerCase();
-      const isProj=isProjVal==='si'||isProjVal==='si'||isProjVal==='true';
-      const colectivo=isProj?'Equipo Proyecto':'Organizacion';
-      const area=String(row[areaCol]||'');
-      const P=(cols,i)=>parseFloat(row[cols[i]])||0;
-      let scores={sc_comprension:0,sc_conviccion:0,sc_energia:0,sc_confianza:0,sc_capacidad:0,sc_soporte:0};
-      if(isProj&&projCols.length>=8){
-        scores.sc_comprension=P(projCols,0);
-        scores.sc_conviccion=(P(projCols,1)+P(projCols,5))/2;
-        scores.sc_energia=P(projCols,2);
-        scores.sc_confianza=(P(projCols,3)+P(projCols,7))/2;
-        scores.sc_capacidad=(P(projCols,4)+P(projCols,5))/2;
-        scores.sc_soporte=P(projCols,6);
-      } else if(orgCols.length>=8){
-        scores.sc_comprension=(P(orgCols,0)+P(orgCols,1))/2;
-        scores.sc_conviccion=P(orgCols,0);
-        scores.sc_energia=P(orgCols,2);
-        scores.sc_confianza=(P(orgCols,3)+P(orgCols,7))/2;
-        scores.sc_capacidad=(P(orgCols,4)+P(orgCols,5))/2;
-        scores.sc_soporte=P(orgCols,6);
+    // Auto-detect survey format
+    const fmt=detectSurveyFormat(keyRow,questionRow);
+    console.log('[Parser] format:',fmt);
+    setStatus('loading','Procesando encuesta (formato: '+fmt+')...');
+
+    let parsed=[];
+
+    if(fmt==='anterior_int'||fmt==='anterior_ext'){
+      const isExt=(fmt==='anterior_ext');
+      const colectivo=isExt?'Externo':'Org';
+      let areaCol=-1;
+      questionRow.forEach((cell,i)=>{
+        const t=String(cell||'').toLowerCase();
+        if(t.includes('aprovisionamiento')||t.includes('perteneces'))areaCol=i;
+      });
+      let openCols=[];
+      keyRow.forEach((k,i)=>{
+        if(/^Q[6-9]$|^Q1[0-5]$/.test(String(k||''))){
+          const qt=String(questionRow[i]||'').toLowerCase();
+          if(qt.includes('preocup')||qt.includes('oportunidad')||qt.includes('apoyo')||qt.includes('lecci'))openCols.push(i);
+        }
+      });
+      if(!openCols.length){
+        questionRow.forEach((cell,i)=>{
+          const t=String(cell||'').toLowerCase();
+          if(t.includes('preocupaci')||t.includes('oportunidad')||t.includes('apoyo')||t.includes('lecci'))openCols.push(i);
+        });
       }
-      const open1=isProj?String(row[openProjCol]||''):String(row[openOrgCol]||'');
-      const open2=!isProj?String(row[openOrg2Col]||''):'';
-      const arch=classifyArchetype(scores).id;
-      return{colectivo,area,arch,open_q1:open1,open_q2:open2,...scores};
-    }).filter(r=>r.sc_comprension||r.sc_energia||r.sc_conviccion);
+      parsed=completeRows.map(row=>{
+        const scores=isExt?scoreRowAnteriorExt(row,keyRow,questionRow):scoreRowAnteriorInt(row,keyRow,questionRow);
+        const area=areaCol>=0?String(row[areaCol]||''):'';
+        const opens=openCols.map(i=>String(row[i]||'')).filter(t=>t.trim().length>3);
+        const arch=classifyArchetype(scores).id;
+        return{colectivo,area,arch,open_q1:opens[0]||'',open_q2:opens[1]||'',...scores};
+      }).filter(r=>r.sc_comprension||r.sc_conviccion||r.sc_energia);
 
-    pendingSurveyData={file:file.name,responses:parsed,nTotal:ORG_TOTAL,nStarted:startedRows.length,nComplete:completeRows.length,nSent:allRows.length};
-    document.getElementById('sm-name').value=file.name.replace(/\.xlsx$/i,'');
-    document.getElementById('sm-date').value=new Date().toISOString().split('T')[0];
-    setSelectObj('sm-pulse',pulses.map(p=>({v:p.id,l:p.name})),'Sin pulso');
-    const orgN=parsed.filter(r=>r.colectivo==='Organizacion').length;
+    } else {
+      // Mayo format
+      let isProjCol=-1,areaCol=-1;
+      questionRow.forEach((cell,i)=>{
+        const t=String(cell).toLowerCase();
+        if(t.includes('perteneces al equipo de proyecto'))isProjCol=i;
+        if(t.includes('a que equipo perteneces')||t.includes('equipo perteneces'))areaCol=i;
+      });
+      let orgCols=[],projCols=[],openOrgCol=-1,openOrg2Col=-1,openProjCol=-1;
+      questionRow.forEach((cell,i)=>{
+        const t=String(cell).toLowerCase();
+        if(t.includes('entiendo por qu'))orgCols.push(i);
+        else if(t.includes('idea general'))orgCols.push(i);
+        else if(t.includes('actitud abierta'))orgCols.push(i);
+        else if(t.includes('tranquilo')&&t.includes('confiado'))orgCols.push(i);
+        else if(t.includes('podre adquirir'))orgCols.push(i);
+        else if(t.includes('capaz de adaptar'))orgCols.push(i);
+        else if(t.includes('tiempo y apoyo'))orgCols.push(i);
+        else if(t.includes('clara y suficiente'))orgCols.push(i);
+        else if(t.includes('proyecto que estamos'))projCols.push(i);
+        else if(t.includes('beneficios concretos'))projCols.push(i);
+        else if(t.includes('dispuesto')&&t.includes('contribuir'))projCols.push(i);
+        else if(t.includes('confianza')&&t.includes('ilusion'))projCols.push(i);
+        else if(t.includes('conocimiento')&&t.includes('piloto'))projCols.push(i);
+        else if(t.includes('seguro')&&t.includes('cambiar'))projCols.push(i);
+        else if(t.includes('tiempo necesario')&&t.includes('dedicar'))projCols.push(i);
+        else if(t.includes('acompanamiento')&&t.includes('consistentes'))projCols.push(i);
+        if(t.includes('necesidades, preocupaciones'))openOrgCol=i;
+        if(t.includes('aspectos clave'))openProjCol=i;
+        if(t.includes('claro a quien'))openOrg2Col=i;
+      });
+      if(orgCols.length<8){
+        orgCols=[];projCols=[];
+        keyRow.forEach((cell,i)=>{
+          const k=String(cell||'');
+          if(k.includes('Colectivo 1_'))orgCols.push(i);
+          if(k.includes('Eq Proyecto1_'))projCols.push(i);
+        });
+      }
+      parsed=completeRows.map(row=>{
+        const isProjVal=String(row[isProjCol]||'').toLowerCase();
+        const isProj=isProjVal==='si'||isProjVal==='true';
+        const colectivo=isProj?'Equipo Proyecto':'Org';
+        const area=String(row[areaCol]||'');
+        const G=(cols,i)=>parseFloat(String(row[cols[i]]||'0').trim())||0;
+        let scores={sc_comprension:0,sc_conviccion:0,sc_energia:0,sc_confianza:0,sc_capacidad:0,sc_soporte:0};
+        if(isProj&&projCols.length>=8){
+          scores.sc_comprension=G(projCols,0);
+          scores.sc_conviccion=(G(projCols,1)+G(projCols,5))/2;
+          scores.sc_energia=G(projCols,2);
+          scores.sc_confianza=(G(projCols,3)+G(projCols,7))/2;
+          scores.sc_capacidad=(G(projCols,4)+G(projCols,5))/2;
+          scores.sc_soporte=G(projCols,6);
+        } else if(orgCols.length>=8){
+          scores.sc_comprension=(G(orgCols,0)+G(orgCols,1))/2;
+          scores.sc_conviccion=G(orgCols,0);
+          scores.sc_energia=G(orgCols,2);
+          scores.sc_confianza=(G(orgCols,3)+G(orgCols,7))/2;
+          scores.sc_capacidad=(G(orgCols,4)+G(orgCols,5))/2;
+          scores.sc_soporte=G(orgCols,6);
+        }
+        const open1=isProj?String(row[openProjCol]||''):String(row[openOrgCol]||'');
+        const open2=!isProj?String(row[openOrg2Col]||''):'';
+        const arch=classifyArchetype(scores).id;
+        return{colectivo,area,arch,open_q1:open1,open_q2:open2,...scores};
+      }).filter(r=>r.sc_comprension||r.sc_energia||r.sc_conviccion);
+    }
+
+    console.log('[Parser] valid responses:',parsed.length);
+    const orgN=parsed.filter(r=>r.colectivo==='Org').length;
     const projN=parsed.filter(r=>r.colectivo==='Equipo Proyecto').length;
-    document.getElementById('sm-preview').innerHTML=`<strong>${parsed.length}</strong> respuestas validas procesadas<br><span style="color:var(--blue)">${orgN} organizacion</span> + <span style="color:var(--purple)">${projN} equipo proyecto</span><br><span style="color:var(--muted);font-size:.68rem">${startedRows.length} iniciadas · ${allRows.length} enviadas · ${ORG_TOTAL} en alcance</span>`;
+    const extN=parsed.filter(r=>r.colectivo==='Externo').length;
+    const fmtLabel={'mayo':'Mayo','anterior_int':'Anterior internos','anterior_ext':'Anterior externos','unknown':'Desconocido'}[fmt]||fmt;
+    document.getElementById('sm-preview').innerHTML=`<strong>${parsed.length}</strong> respuestas validas · Formato: <em>${fmtLabel}</em><br>`+
+      `<span style="color:var(--blue)">${orgN} org</span>`+
+      (projN?` + <span style="color:var(--purple)">${projN} proyecto</span>`:'')+
+      (extN?` + <span style="color:var(--sg)">${extN} externo</span>`:'')+
+      `<br><span style="color:var(--muted);font-size:.68rem">${startedRows.length} iniciadas · ${allRows.length} filas · ${ORG_TOTAL} en alcance</span>`;
+    pendingSurveyData={file:file.name,responses:parsed,nTotal:ORG_TOTAL,nStarted:startedRows.length,nComplete:completeRows.length};
+    setSelectObj('sm-pulse',pulses.map(p=>({v:p.id,l:p.name})),'Sin pulso');
     document.getElementById('surveyModal').style.display='flex';
     setStatus('ok','Encuesta procesada. Completa los datos para guardar.');
-  }catch(e){setStatus('err','Error al procesar: '+e.message);console.error(e);}
+  }catch(e){setStatus('err','Error: '+e.message);console.error(e);}
 }
-
-function hideSurveyModal(){document.getElementById('surveyModal').style.display='none';pendingSurveyData=null;}
 
 async function saveSurvey(){
   if(!pendingSurveyData){document.getElementById('smStatus').textContent='Sin datos';return;}
